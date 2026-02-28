@@ -8,3 +8,5 @@
 ./src/.claude
 ./src/.idea
 ./src/.claude-trace
+./.claude-trace
+./.idea
