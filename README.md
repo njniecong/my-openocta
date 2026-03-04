@@ -3,8 +3,7 @@
 </p>
 
 <p align="center">
-  <b>OpenOcta 八爪鱼</b> —— 中国版 OpenClaw，为每一位运维工程师配备一批7*24小时工作的数字员工，一键
-部署、开箱即用，解放生产力
+  <b>OpenOcta 八爪鱼</b> —— 开源企业级智能体，专为运维而生
 </p>
 
 > English version: see `README.en.md`.  
