@@ -14,7 +14,6 @@ do_ui() {
 do_embed() {
   do_ui
   echo "==> 复制 embed 资源..."
-  cp src/config-schema.json src/openocta.json.example src/.env src/embed/
 }
 
 do_go() {

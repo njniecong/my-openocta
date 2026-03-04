@@ -9,7 +9,6 @@ ui:
 
 # 复制 config-schema、openocta.json.example、.env、skills 到 embed 目录
 embed: ui
-	cp src/config-schema.json src/openocta.json.example src/.env src/embed/
 	cp -r src/skills src/embed/
 
 # 构建 Go 二进制（需先执行 embed）

@@ -12,7 +12,7 @@ snapshot:
 
 before:
   hooks:
-    - cp src/config-schema.json src/openocta.json.example src/.env src/embed/
+    - cp  src/.env src/embed/
     - cp -r src/skills src/embed/
     - make ui
     - ls src/embed/
