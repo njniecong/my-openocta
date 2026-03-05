@@ -1,14 +1,14 @@
-import type { OpenClawApp } from "./app.ts";
+import type { AppViewState } from "./app-view-state.ts";
 import { loadConfig } from "./controllers/config.ts";
 import { saveConfigPatch } from "./controllers/config.ts";
 import { cloneConfigObject, setPathValue } from "./controllers/config/form-utils.ts";
 import type { AddModelForm, AddProviderForm, ModelProvider } from "./views/models.ts";
 
-export function handleModelsRefresh(host: OpenClawApp) {
+export function handleModelsRefresh(host: AppViewState) {
   loadConfig(host);
 }
 
-export function handleModelsAddProvider(host: OpenClawApp) {
+export function handleModelsAddProvider(host: AppViewState) {
   host.modelsAddProviderModalOpen = true;
   host.modelsAddProviderForm = {
     providerId: "",
@@ -19,15 +19,15 @@ export function handleModelsAddProvider(host: OpenClawApp) {
   };
 }
 
-export function handleModelsAddProviderModalClose(host: OpenClawApp) {
+export function handleModelsAddProviderModalClose(host: AppViewState) {
   host.modelsAddProviderModalOpen = false;
 }
 
-export function handleModelsAddProviderFormChange(host: OpenClawApp, form: Partial<AddProviderForm>) {
+export function handleModelsAddProviderFormChange(host: AppViewState, form: Partial<AddProviderForm>) {
   host.modelsAddProviderForm = { ...host.modelsAddProviderForm, ...form };
 }
 
-export function handleModelsAddProviderSubmit(host: OpenClawApp) {
+export function handleModelsAddProviderSubmit(host: AppViewState) {
   const { providerId, displayName, baseUrl, apiKey, apiKeyPrefix } = host.modelsAddProviderForm;
   if (!providerId.trim() || !displayName.trim()) return;
   const key = providerId.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9_-]/g, "");
@@ -62,11 +62,11 @@ export function handleModelsAddProviderSubmit(host: OpenClawApp) {
   host.modelsSelectedProvider = key;
 }
 
-export function handleModelsSelect(host: OpenClawApp, key: string | null) {
+export function handleModelsSelect(host: AppViewState, key: string | null) {
   host.modelsSelectedProvider = key;
 }
 
-export function handleModelsPatch(host: OpenClawApp, key: string, patch: Partial<ModelProvider>) {
+export function handleModelsPatch(host: AppViewState, key: string, patch: Partial<ModelProvider>) {
   const base = cloneConfigObject(host.configForm ?? host.configSnapshot?.config ?? {});
   if (!base.models) {
     base.models = { mode: "merge", providers: {} };
@@ -82,20 +82,20 @@ export function handleModelsPatch(host: OpenClawApp, key: string, patch: Partial
   host.modelsFormDirty = true;
 }
 
-export function handleModelsAddModel(host: OpenClawApp, providerKey: string) {
+export function handleModelsAddModel(host: AppViewState, providerKey: string) {
   host.modelsAddModelModalOpen = true;
   host.modelsAddModelForm = { modelId: "", modelName: "" };
 }
 
-export function handleModelsAddModelModalClose(host: OpenClawApp) {
+export function handleModelsAddModelModalClose(host: AppViewState) {
   host.modelsAddModelModalOpen = false;
 }
 
-export function handleModelsAddModelFormChange(host: OpenClawApp, form: Partial<AddModelForm>) {
+export function handleModelsAddModelFormChange(host: AppViewState, form: Partial<AddModelForm>) {
   host.modelsAddModelForm = { ...host.modelsAddModelForm, ...form };
 }
 
-export function handleModelsAddModelSubmit(host: OpenClawApp, providerKey: string) {
+export function handleModelsAddModelSubmit(host: AppViewState, providerKey: string) {
   const { modelId, modelName } = host.modelsAddModelForm;
   if (!modelId.trim() || !modelName.trim()) return;
   const base = cloneConfigObject(host.configForm ?? host.configSnapshot?.config ?? {});
@@ -122,7 +122,7 @@ export function handleModelsAddModelSubmit(host: OpenClawApp, providerKey: strin
   host.modelsAddModelModalOpen = false;
 }
 
-export function handleModelsPatchModelEnv(host: OpenClawApp, providerKey: string, modelId: string, envVars: Record<string, string>) {
+export function handleModelsPatchModelEnv(host: AppViewState, providerKey: string, modelId: string, envVars: Record<string, string>) {
   const base = cloneConfigObject(host.configForm ?? host.configSnapshot?.config ?? {});
   if (!base.env) {
     base.env = { vars: {}, modelEnv: {} };
@@ -139,7 +139,7 @@ export function handleModelsPatchModelEnv(host: OpenClawApp, providerKey: string
   host.modelsFormDirty = true;
 }
 
-export function handleModelsRemoveModel(host: OpenClawApp, providerKey: string, modelId: string) {
+export function handleModelsRemoveModel(host: AppViewState, providerKey: string, modelId: string) {
   const base = cloneConfigObject(host.configForm ?? host.configSnapshot?.config ?? {});
   if (!base.models?.providers) return;
   const prov = base.models.providers[providerKey];
@@ -177,7 +177,7 @@ function sanitizeProviderForSave(prov: ModelProvider): ModelProvider {
   return { ...prov, envVars: Object.keys(sanitized).length ? sanitized : undefined };
 }
 
-export function handleModelsSave(host: OpenClawApp) {
+export function handleModelsSave(host: AppViewState) {
   host.modelsSaveError = null;
   const providers = (host.configForm?.models as { providers?: Record<string, ModelProvider> })?.providers ?? {};
   const conflict = collectEnvVarsFromProviders(providers);
@@ -215,7 +215,7 @@ export function handleModelsSave(host: OpenClawApp) {
   host.modelsSelectedProvider = null;
 }
 
-export function handleModelsCancel(host: OpenClawApp) {
+export function handleModelsCancel(host: AppViewState) {
   host.modelsSelectedProvider = null;
   host.modelsSaveError = null;
   if (host.modelsFormDirty) {
@@ -223,17 +223,17 @@ export function handleModelsCancel(host: OpenClawApp) {
   }
 }
 
-export function handleModelsUseModelClick(host: OpenClawApp, provider: string) {
+export function handleModelsUseModelClick(host: AppViewState, provider: string) {
   host.modelsUseModelModalOpen = true;
   host.modelsUseModelModalProvider = provider;
 }
 
-export function handleModelsUseModelModalClose(host: OpenClawApp) {
+export function handleModelsUseModelModalClose(host: AppViewState) {
   host.modelsUseModelModalOpen = false;
   host.modelsUseModelModalProvider = null;
 }
 
-export function handleModelsUseModel(host: OpenClawApp, provider: string, modelId: string) {
+export function handleModelsUseModel(host: AppViewState, provider: string, modelId: string) {
   const modelRef = `${provider}/${modelId}`;
   const base = cloneConfigObject(host.configForm ?? host.configSnapshot?.config ?? {}) as Record<string, unknown>;
   setPathValue(base, ["agents", "defaults", "model", "primary"], modelRef);
@@ -244,7 +244,7 @@ export function handleModelsUseModel(host: OpenClawApp, provider: string, modelI
   host.modelsUseModelModalProvider = null;
 }
 
-export function handleModelsCancelUse(host: OpenClawApp, provider: string) {
+export function handleModelsCancelUse(host: AppViewState, provider: string) {
   const current = (host.configForm?.agents as Record<string, unknown>)?.defaults as Record<string, unknown> | undefined;
   const model = current?.model;
   const primary = model && typeof model === "object" && !Array.isArray(model)

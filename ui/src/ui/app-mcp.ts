@@ -1,18 +1,18 @@
-import type { OpenClawApp } from "./app.ts";
+import type { AppViewState } from "./app-view-state.ts";
 import { loadConfig } from "./controllers/config.ts";
 import { saveConfigPatch } from "./controllers/config.ts";
 import { cloneConfigObject } from "./controllers/config/form-utils.ts";
 import type { McpServerEntry } from "./views/mcp.ts";
 
-export function handleMcpRefresh(host: OpenClawApp) {
+export function handleMcpRefresh(host: AppViewState) {
   loadConfig(host);
 }
 
-export function handleMcpViewModeChange(host: OpenClawApp, mode: "list" | "card") {
+export function handleMcpViewModeChange(host: AppViewState, mode: "list" | "card") {
   host.mcpViewMode = mode;
 }
 
-export function handleMcpAddServer(host: OpenClawApp) {
+export function handleMcpAddServer(host: AppViewState) {
   host.mcpAddModalOpen = true;
   host.mcpAddName = "";
   host.mcpAddDraft = { enabled: true, command: "npx" };
@@ -22,25 +22,25 @@ export function handleMcpAddServer(host: OpenClawApp) {
   host.mcpAddRawError = null;
 }
 
-export function handleMcpAddClose(host: OpenClawApp) {
+export function handleMcpAddClose(host: AppViewState) {
   host.mcpAddModalOpen = false;
   host.mcpAddName = "";
   host.mcpAddRawError = null;
 }
 
-export function handleMcpAddNameChange(host: OpenClawApp, name: string) {
+export function handleMcpAddNameChange(host: AppViewState, name: string) {
   host.mcpAddName = name;
 }
 
-export function handleMcpAddFormPatch(host: OpenClawApp, patch: Partial<McpServerEntry>) {
+export function handleMcpAddFormPatch(host: AppViewState, patch: Partial<McpServerEntry>) {
   host.mcpAddDraft = { ...host.mcpAddDraft, ...patch };
 }
 
-export function handleMcpAddConnectionTypeChange(host: OpenClawApp, type: "stdio" | "url" | "service") {
+export function handleMcpAddConnectionTypeChange(host: AppViewState, type: "stdio" | "url" | "service") {
   host.mcpAddConnectionType = type;
 }
 
-export function handleMcpAddRawChange(host: OpenClawApp, json: string) {
+export function handleMcpAddRawChange(host: AppViewState, json: string) {
   host.mcpAddRawJson = json;
   try {
     const parsed = JSON.parse(json) as McpServerEntry;
@@ -51,14 +51,14 @@ export function handleMcpAddRawChange(host: OpenClawApp, json: string) {
   }
 }
 
-export function handleMcpAddEditModeChange(host: OpenClawApp, mode: "form" | "raw") {
+export function handleMcpAddEditModeChange(host: AppViewState, mode: "form" | "raw") {
   host.mcpAddEditMode = mode;
   if (mode === "raw") {
     host.mcpAddRawJson = JSON.stringify(host.mcpAddDraft, null, 2);
   }
 }
 
-export async function handleMcpAddSubmit(host: OpenClawApp) {
+export async function handleMcpAddSubmit(host: AppViewState) {
   const name = host.mcpAddName?.trim();
   if (!name) {
     return;
@@ -105,7 +105,7 @@ function inferConnectionType(entry: McpServerEntry | undefined): "stdio" | "url"
   return "stdio";
 }
 
-export function handleMcpSelect(host: OpenClawApp, key: string | null) {
+export function handleMcpSelect(host: AppViewState, key: string | null) {
   host.mcpSelectedKey = key;
   host.mcpRawError = null;
   if (key) {
@@ -116,11 +116,11 @@ export function handleMcpSelect(host: OpenClawApp, key: string | null) {
   }
 }
 
-export function handleMcpEditConnectionTypeChange(host: OpenClawApp, type: "stdio" | "url" | "service") {
+export function handleMcpEditConnectionTypeChange(host: AppViewState, type: "stdio" | "url" | "service") {
   host.mcpEditConnectionType = type;
 }
 
-export function handleMcpToggle(host: OpenClawApp, key: string, enabled: boolean) {
+export function handleMcpToggle(host: AppViewState, key: string, enabled: boolean) {
   const base = cloneConfigObject(host.configForm ?? host.configSnapshot?.config ?? {});
   if (!base.mcp) {
     base.mcp = { servers: {} };
@@ -138,7 +138,7 @@ export function handleMcpToggle(host: OpenClawApp, key: string, enabled: boolean
   saveConfigPatch(host, { mcp: base.mcp });
 }
 
-export function handleMcpFormPatch(host: OpenClawApp, key: string, patch: Partial<McpServerEntry>) {
+export function handleMcpFormPatch(host: AppViewState, key: string, patch: Partial<McpServerEntry>) {
   const base = cloneConfigObject(host.configForm ?? host.configSnapshot?.config ?? {});
   if (!base.mcp) {
     base.mcp = { servers: {} };
@@ -154,7 +154,7 @@ export function handleMcpFormPatch(host: OpenClawApp, key: string, patch: Partia
   host.mcpFormDirty = true;
 }
 
-export function handleMcpRawChange(host: OpenClawApp, key: string, json: string) {
+export function handleMcpRawChange(host: AppViewState, key: string, json: string) {
   host.mcpRawJson = json;
   try {
     const parsed = JSON.parse(json) as McpServerEntry;
@@ -175,7 +175,7 @@ export function handleMcpRawChange(host: OpenClawApp, key: string, json: string)
   }
 }
 
-export function handleMcpSave(host: OpenClawApp) {
+export function handleMcpSave(host: AppViewState) {
   if (!host.mcpSelectedKey) {
     return;
   }
@@ -193,7 +193,7 @@ export function handleMcpSave(host: OpenClawApp) {
   host.mcpSelectedKey = null;
 }
 
-export function handleMcpCancel(host: OpenClawApp) {
+export function handleMcpCancel(host: AppViewState) {
   host.mcpSelectedKey = null;
   host.mcpRawError = null;
   if (host.mcpFormDirty) {
@@ -201,7 +201,7 @@ export function handleMcpCancel(host: OpenClawApp) {
   }
 }
 
-export function handleMcpDelete(host: OpenClawApp, key: string) {
+export function handleMcpDelete(host: AppViewState, key: string) {
   const base = host.configForm ?? host.configSnapshot?.config;
   const mcp = base?.mcp as { servers?: Record<string, McpServerEntry> } | undefined;
   if (mcp?.servers && key in mcp.servers) {

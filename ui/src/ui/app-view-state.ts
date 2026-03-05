@@ -111,6 +111,7 @@ export type AppViewState = {
   channelsSnapshot: ChannelsStatusSnapshot | null;
   channelsError: string | null;
   channelsLastSuccess: number | null;
+  channelsSelectedChannelId: string | null;
   whatsappLoginMessage: string | null;
   whatsappLoginQrDataUrl: string | null;
   whatsappLoginConnected: boolean | null;
@@ -204,6 +205,40 @@ export type AppViewState = {
   skillsUploadError: string | null;
   skillsUploadTemplate: string | null;
   skillsUploadBusy: boolean;
+  skillsViewMode: "list" | "card";
+  skillsSelectedSkillKey: string | null;
+  // MCP
+  mcpSelectedKey: string | null;
+  mcpViewMode: "list" | "card";
+  mcpAddModalOpen: boolean;
+  mcpAddName: string;
+  mcpAddDraft: Record<string, unknown>;
+  mcpAddConnectionType: "stdio" | "url" | "service";
+  mcpAddEditMode: "form" | "raw";
+  mcpAddRawJson: string;
+  mcpAddRawError: string | null;
+  mcpEditMode: "form" | "raw";
+  mcpEditConnectionType: "stdio" | "url" | "service";
+  mcpFormDirty: boolean;
+  mcpRawJson: string;
+  mcpRawError: string | null;
+  // Models
+  modelsSelectedProvider: string | null;
+  modelsViewMode: "list" | "card";
+  modelsFormDirty: boolean;
+  modelsAddProviderModalOpen: boolean;
+  modelsAddProviderForm: {
+    providerId: string;
+    displayName: string;
+    baseUrl: string;
+    apiKey: string;
+    apiKeyPrefix: string;
+  };
+  modelsAddModelModalOpen: boolean;
+  modelsAddModelForm: { modelId: string; modelName: string };
+  modelsUseModelModalOpen: boolean;
+  modelsUseModelModalProvider: string | null;
+  modelsSaveError: string | null;
   // Digital employees
   digitalEmployeesLoading: boolean;
   digitalEmployeesError: string | null;
