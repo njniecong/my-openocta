@@ -2645,30 +2645,83 @@ const buildAggregatesFromSessions = (
       }
     }
 
-    if (usage.modelUsage) {
+    if (usage.modelUsage && usage.modelUsage.length > 0) {
+      let sessionUsageAddedForModel = false;
       for (const entry of usage.modelUsage) {
-        const modelKey = `${entry.provider ?? "unknown"}::${entry.model ?? "unknown"}`;
+        // Use session-level model/provider when transcript has "unknown" (message.usage often 0, token_usage may lack model)
+        const effProvider =
+          entry.provider && entry.provider !== "unknown"
+            ? entry.provider
+            : session.modelProvider ?? session.providerOverride ?? "unknown";
+        const effModel =
+          entry.model && entry.model !== "unknown"
+            ? entry.model
+            : session.model ?? session.modelOverride ?? "unknown";
+        // When entry totals are 0 (from message.usage), use session usage totals (from token_usage)
+        const useTotals =
+          entry.totals.totalTokens === 0 && usage.totalTokens > 0 && !sessionUsageAddedForModel
+            ? {
+                input: usage.input,
+                output: usage.output,
+                cacheRead: usage.cacheRead,
+                cacheWrite: usage.cacheWrite,
+                totalTokens: usage.totalTokens,
+                totalCost: usage.totalCost,
+                inputCost: usage.inputCost ?? 0,
+                outputCost: usage.outputCost ?? 0,
+                cacheReadCost: usage.cacheReadCost ?? 0,
+                cacheWriteCost: usage.cacheWriteCost ?? 0,
+                missingCostEntries: usage.missingCostEntries ?? 0,
+              }
+            : entry.totals;
+        if (entry.totals.totalTokens === 0 && usage.totalTokens > 0) {
+          sessionUsageAddedForModel = true;
+        }
+        const modelKey = `${effProvider}::${effModel}`;
         const modelExisting = modelMap.get(modelKey) ?? {
-          provider: entry.provider,
-          model: entry.model,
+          provider: effProvider,
+          model: effModel,
           count: 0,
           totals: emptyUsageTotals(),
         };
         modelExisting.count += entry.count;
-        mergeUsageTotals(modelExisting.totals, entry.totals);
+        mergeUsageTotals(modelExisting.totals, useTotals);
         modelMap.set(modelKey, modelExisting);
 
-        const providerKey = entry.provider ?? "unknown";
-        const providerExisting = providerMap.get(providerKey) ?? {
-          provider: entry.provider,
+        const providerExisting = providerMap.get(effProvider) ?? {
+          provider: effProvider,
           model: undefined,
           count: 0,
           totals: emptyUsageTotals(),
         };
         providerExisting.count += entry.count;
-        mergeUsageTotals(providerExisting.totals, entry.totals);
-        providerMap.set(providerKey, providerExisting);
+        mergeUsageTotals(providerExisting.totals, useTotals);
+        providerMap.set(effProvider, providerExisting);
       }
+    } else if (usage.totalTokens > 0) {
+      // Session has usage but no modelUsage: use session-level model/provider
+      const effProvider = session.modelProvider ?? session.providerOverride ?? "unknown";
+      const effModel = session.model ?? session.modelOverride ?? "unknown";
+      const modelKey = `${effProvider}::${effModel}`;
+      const modelExisting = modelMap.get(modelKey) ?? {
+        provider: effProvider,
+        model: effModel,
+        count: 0,
+        totals: emptyUsageTotals(),
+      };
+      modelExisting.count += 1;
+      mergeUsageTotals(modelExisting.totals, usage);
+      modelMap.set(modelKey, modelExisting);
+
+      const providerExisting = providerMap.get(effProvider) ?? {
+        provider: effProvider,
+        model: undefined,
+        count: 0,
+        totals: emptyUsageTotals(),
+      };
+      providerExisting.count += 1;
+      mergeUsageTotals(providerExisting.totals, usage);
+      providerMap.set(effProvider, providerExisting);
     }
 
     if (usage.latency) {
@@ -2737,11 +2790,19 @@ const buildAggregatesFromSessions = (
       dailyLatencyMap.set(day.date, existing);
     }
     for (const day of usage.dailyModelUsage ?? []) {
-      const key = `${day.date}::${day.provider ?? "unknown"}::${day.model ?? "unknown"}`;
+      const effProvider =
+        day.provider && day.provider !== "unknown"
+          ? day.provider
+          : session.modelProvider ?? session.providerOverride ?? "unknown";
+      const effModel =
+        day.model && day.model !== "unknown"
+          ? day.model
+          : session.model ?? session.modelOverride ?? "unknown";
+      const key = `${day.date}::${effProvider}::${effModel}`;
       const existing = modelDailyMap.get(key) ?? {
         date: day.date,
-        provider: day.provider,
-        model: day.model,
+        provider: effProvider,
+        model: effModel,
         tokens: 0,
         cost: 0,
         count: 0,
@@ -3490,16 +3551,22 @@ function renderUsageInsights(
     .slice(0, 5)
     .map(({ rate: _rate, ...rest }) => rest);
 
-  const topModels = aggregates.byModel.slice(0, 5).map((entry) => ({
-    label: entry.model ?? "unknown",
-    value: formatCost(entry.totals.totalCost),
-    sub: `${formatTokens(entry.totals.totalTokens)} · ${entry.count} ${t("usageMessagesCount")}`,
-  }));
-  const topProviders = aggregates.byProvider.slice(0, 5).map((entry) => ({
-    label: entry.provider ?? "unknown",
-    value: formatCost(entry.totals.totalCost),
-    sub: `${formatTokens(entry.totals.totalTokens)} · ${entry.count} ${t("usageMessagesCount")}`,
-  }));
+  const topModels = aggregates.byModel
+    .filter((e) => (e.count ?? 0) > 0 || (e.totals?.totalTokens ?? 0) > 0)
+    .slice(0, 5)
+    .map((entry) => ({
+      label: entry.model ?? "unknown",
+      value: formatCost(entry.totals.totalCost),
+      sub: `${formatTokens(entry.totals.totalTokens)} · ${entry.count} ${t("usageMessagesCount")}`,
+    }));
+  const topProviders = aggregates.byProvider
+    .filter((e) => (e.count ?? 0) > 0 || (e.totals?.totalTokens ?? 0) > 0)
+    .slice(0, 5)
+    .map((entry) => ({
+      label: entry.provider ?? "unknown",
+      value: formatCost(entry.totals.totalCost),
+      sub: `${formatTokens(entry.totals.totalTokens)} · ${entry.count} ${t("usageMessagesCount")}`,
+    }));
   const topTools = aggregates.tools.tools.slice(0, 6).map((tool) => ({
     label: tool.name,
     value: `${tool.count}`,

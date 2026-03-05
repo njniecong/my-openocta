@@ -443,49 +443,77 @@ func SessionsUsageHandler(opts HandlerOpts) error {
 				}
 			}
 			if usage.ModelUsage != nil {
+				// When entry totals are 0 (from message.usage), session usage comes from token_usage; add only once per session to avoid double-count
+				sessionUsageAddedForModel := false
 				for _, entry := range usage.ModelUsage {
-					modelKey := entry.Provider + "::" + entry.Model
+					// Use session-level model/provider when transcript has "unknown" (message.usage often 0, token_usage may lack model)
+					effProvider := entry.Provider
+					if effProvider == "" || effProvider == "unknown" {
+						effProvider = modelProvider
+					}
+					effModel := entry.Model
+					if effModel == "" || effModel == "unknown" {
+						effModel = model
+					}
+					useTotals := entry.Totals
+					if entry.Totals.TotalTokens == 0 && usage.TotalTokens > 0 && !sessionUsageAddedForModel {
+						useTotals = session.CostUsageTotals{
+							Input:              usage.Input,
+							Output:             usage.Output,
+							CacheRead:          usage.CacheRead,
+							CacheWrite:         usage.CacheWrite,
+							TotalTokens:        usage.TotalTokens,
+							TotalCost:          usage.TotalCost,
+							InputCost:          usage.InputCost,
+							OutputCost:         usage.OutputCost,
+							CacheReadCost:      usage.CacheReadCost,
+							CacheWriteCost:     usage.CacheWriteCost,
+							MissingCostEntries: usage.MissingCostEntries,
+						}
+						sessionUsageAddedForModel = true
+					}
+					modelKey := effProvider + "::" + effModel
 					if row, ok := byModelMap[modelKey]; ok {
 						row.Count += entry.Count
-						row.Totals.Input += entry.Totals.Input
-						row.Totals.Output += entry.Totals.Output
-						row.Totals.CacheRead += entry.Totals.CacheRead
-						row.Totals.CacheWrite += entry.Totals.CacheWrite
-						row.Totals.TotalTokens += entry.Totals.TotalTokens
-						row.Totals.TotalCost += entry.Totals.TotalCost
-						row.Totals.InputCost += entry.Totals.InputCost
-						row.Totals.OutputCost += entry.Totals.OutputCost
-						row.Totals.CacheReadCost += entry.Totals.CacheReadCost
-						row.Totals.CacheWriteCost += entry.Totals.CacheWriteCost
-						row.Totals.MissingCostEntries += entry.Totals.MissingCostEntries
+						row.Totals.Input += useTotals.Input
+						row.Totals.Output += useTotals.Output
+						row.Totals.CacheRead += useTotals.CacheRead
+						row.Totals.CacheWrite += useTotals.CacheWrite
+						row.Totals.TotalTokens += useTotals.TotalTokens
+						row.Totals.TotalCost += useTotals.TotalCost
+						row.Totals.InputCost += useTotals.InputCost
+						row.Totals.OutputCost += useTotals.OutputCost
+						row.Totals.CacheReadCost += useTotals.CacheReadCost
+						row.Totals.CacheWriteCost += useTotals.CacheWriteCost
+						row.Totals.MissingCostEntries += useTotals.MissingCostEntries
 					} else {
 						byModelMap[modelKey] = &SessionModelUsageRow{
-							Provider: entry.Provider,
-							Model:    entry.Model,
+							Provider: effProvider,
+							Model:    effModel,
 							Count:    entry.Count,
-							Totals:   entry.Totals,
+							Totals:   useTotals,
 						}
 					}
-					providerKey := entry.Provider
+					providerKey := effProvider
 					if row, ok := byProviderMap[providerKey]; ok {
 						row.Count += entry.Count
-						row.Totals.Input += entry.Totals.Input
-						row.Totals.Output += entry.Totals.Output
-						row.Totals.CacheRead += entry.Totals.CacheRead
-						row.Totals.CacheWrite += entry.Totals.CacheWrite
-						row.Totals.TotalTokens += entry.Totals.TotalTokens
-						row.Totals.TotalCost += entry.Totals.TotalCost
-						row.Totals.InputCost += entry.Totals.InputCost
-						row.Totals.OutputCost += entry.Totals.OutputCost
-						row.Totals.CacheReadCost += entry.Totals.CacheReadCost
-						row.Totals.CacheWriteCost += entry.Totals.CacheWriteCost
-						row.Totals.MissingCostEntries += entry.Totals.MissingCostEntries
+						row.Totals.Input += useTotals.Input
+						row.Totals.Output += useTotals.Output
+						row.Totals.CacheRead += useTotals.CacheRead
+						row.Totals.CacheWrite += useTotals.CacheWrite
+						row.Totals.TotalTokens += useTotals.TotalTokens
+						row.Totals.TotalCost += useTotals.TotalCost
+						row.Totals.InputCost += useTotals.InputCost
+						row.Totals.OutputCost += useTotals.OutputCost
+						row.Totals.CacheReadCost += useTotals.CacheReadCost
+						row.Totals.CacheWriteCost += useTotals.CacheWriteCost
+						row.Totals.MissingCostEntries += useTotals.MissingCostEntries
 					} else {
 						byProviderMap[providerKey] = &SessionModelUsageRow{
-							Provider: entry.Provider,
+							Provider: effProvider,
 							Model:    "",
 							Count:    entry.Count,
-							Totals:   entry.Totals,
+							Totals:   useTotals,
 						}
 					}
 				}
@@ -534,13 +562,22 @@ func SessionsUsageHandler(opts HandlerOpts) error {
 			}
 			if usage.DailyModelUsage != nil {
 				for _, entry := range usage.DailyModelUsage {
-					key := entry.Date + "::" + entry.Provider + "::" + entry.Model
+					// Use session-level model/provider when transcript has "unknown"
+					dmProvider := entry.Provider
+					if dmProvider == "" || dmProvider == "unknown" {
+						dmProvider = modelProvider
+					}
+					dmModel := entry.Model
+					if dmModel == "" || dmModel == "unknown" {
+						dmModel = model
+					}
+					key := entry.Date + "::" + dmProvider + "::" + dmModel
 					existing := modelDailyMap[key]
 					if existing == nil {
 						existing = &SessionDailyModelUsage{
 							Date:     entry.Date,
-							Provider: entry.Provider,
-							Model:    entry.Model,
+							Provider: dmProvider,
+							Model:    dmModel,
 						}
 						modelDailyMap[key] = existing
 					}

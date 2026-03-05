@@ -360,6 +360,38 @@ func LoadSessionCostSummary(sessionFile string, startMs, endMs *int64) (*Session
 				continue
 			}
 		}
+		// Parse token_usage lines (from TokenCallback); these contain actual token consumption
+		var tokenLine tokenUsageLine
+		if json.Unmarshal(line, &tokenLine) == nil && tokenLine.Type == "token_usage" {
+			ts := parseTimestampString(tokenLine.Timestamp)
+			if ts > 0 && (startMs == nil || ts >= *startMs) && (endMs == nil || ts <= *endMs) {
+				if firstAct == 0 || ts < firstAct {
+					firstAct = ts
+				}
+				if ts > lastAct {
+					lastAct = ts
+				}
+				dayKey := FormatDayKey(ts)
+				activityDatesSet[dayKey] = true
+				if u := tokenUsageToUsage(&tokenLine); u != nil {
+					tokens := u.TotalTokens
+					if tokens == 0 {
+						tokens = u.Input + u.Output + u.CacheRead + u.CacheWrite
+					}
+					totals.Input += u.Input
+					totals.Output += u.Output
+					totals.CacheRead += u.CacheRead
+					totals.CacheWrite += u.CacheWrite
+					totals.TotalTokens += tokens
+					totals.MissingCostEntries++ // token_usage has no cost
+					if dailyMap[dayKey] == nil {
+						dailyMap[dayKey] = &SessionDailyUsage{Date: dayKey}
+					}
+					dailyMap[dayKey].Tokens += tokens
+				}
+			}
+			continue
+		}
 		var wrapper transcriptEntryWrapper
 		var msg *TranscriptMessage
 		var ts int64
@@ -484,6 +516,7 @@ func LoadSessionCostSummary(sessionFile string, startMs, endMs *int64) (*Session
 		}
 		totals.Input += u.Input
 		totals.Output += u.Output
+		totals.CacheRead += u.CacheRead
 		totals.CacheRead += u.CacheRead
 		totals.CacheWrite += u.CacheWrite
 		totals.TotalTokens += tokens
@@ -707,6 +740,21 @@ type transcriptLine struct {
 	Timestamp string             `json:"timestamp"` // Can be ISO 8601 string or int64 (handled via parseTimestampString)
 }
 
+// tokenUsageLine is a JSON line with type "token_usage" (appended by TokenCallback / AppendTokenUsageToSession).
+// Token consumption is recorded here; message.usage is often 0.
+type tokenUsageLine struct {
+	Type        string `json:"type"`
+	Timestamp   string `json:"timestamp"`
+	SessionID   string `json:"sessionId,omitempty"`
+	RequestID   string `json:"requestId,omitempty"`
+	Input       int    `json:"input"`
+	Output      int    `json:"output"`
+	CacheRead   int    `json:"cacheRead"`
+	CacheWrite  int    `json:"cacheWrite"`
+	CacheCreate int    `json:"cacheCreation"` // alias from logging.TokenUsageSessionLine
+	TotalTokens int    `json:"totalTokens"`
+}
+
 // applyUsageTotals adds usage to bucket (aligns with TS applyUsageTotals).
 func applyUsageTotals(t *CostUsageTotals, u *Usage) {
 	if u == nil {
@@ -739,8 +787,30 @@ func applyCostToTotals(t *CostUsageTotals, u *Usage) {
 	}
 }
 
-// scanTranscriptForCostUsage reads file line by line, parses JSON, and for each message with usage in [startMs,endMs] calls onEntry.
-// Aligns with TS scanUsageFile + loadCostUsageSummary onEntry: filter by timestamp, then applyUsageTotals + applyCost.
+// tokenUsageToUsage converts tokenUsageLine to Usage (no cost; cost is computed separately).
+func tokenUsageToUsage(t *tokenUsageLine) *Usage {
+	if t == nil || (t.Input == 0 && t.Output == 0 && t.CacheRead == 0 && t.CacheWrite == 0 && t.CacheCreate == 0 && t.TotalTokens == 0) {
+		return nil
+	}
+	cacheWrite := t.CacheWrite
+	if cacheWrite == 0 {
+		cacheWrite = t.CacheCreate
+	}
+	tokens := t.TotalTokens
+	if tokens == 0 {
+		tokens = t.Input + t.Output + t.CacheRead + cacheWrite
+	}
+	return &Usage{
+		Input:       t.Input,
+		Output:      t.Output,
+		CacheRead:   t.CacheRead,
+		CacheWrite:  cacheWrite,
+		TotalTokens: tokens,
+	}
+}
+
+// scanTranscriptForCostUsage reads file line by line, parses JSON, and for each message with usage or token_usage in [startMs,endMs] calls onEntry.
+// token_usage lines (from TokenCallback) contain actual token consumption; message.usage is often 0.
 func scanTranscriptForCostUsage(filePath string, startMs, endMs int64, onEntry func(ts int64, u *Usage)) error {
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -756,6 +826,17 @@ func scanTranscriptForCostUsage(filePath string, startMs, endMs int64, onEntry f
 		}
 		line = bytes.TrimSpace(line)
 		if len(line) == 0 {
+			continue
+		}
+		// Check for token_usage lines first (type "token_usage" with input/output/cacheRead/totalTokens at top level)
+		var tokenLine tokenUsageLine
+		if json.Unmarshal(line, &tokenLine) == nil && tokenLine.Type == "token_usage" {
+			ts := parseTimestampString(tokenLine.Timestamp)
+			if ts > 0 && ts >= startMs && ts <= endMs {
+				if u := tokenUsageToUsage(&tokenLine); u != nil {
+					onEntry(ts, u)
+				}
+			}
 			continue
 		}
 		var wrapper transcriptLine
@@ -861,6 +942,7 @@ type UsageTimePoint struct {
 }
 
 // LoadSessionUsageTimeSeries reads a transcript and returns usage points (aligns with TS loadSessionUsageTimeSeries).
+// Includes both message.usage and token_usage lines.
 func LoadSessionUsageTimeSeries(sessionFile string, maxPoints int) ([]UsageTimePoint, error) {
 	f, err := os.Open(sessionFile)
 	if err != nil {
@@ -884,28 +966,50 @@ func LoadSessionUsageTimeSeries(sessionFile string, maxPoints int) ([]UsageTimeP
 				continue
 			}
 		}
-		var m TranscriptMessage
-		if json.Unmarshal(line, &m) != nil {
-			continue
-		}
-		ts := m.Timestamp
-		if ts == 0 {
-			continue
-		}
-		tokens := 0
-		cost := 0.0
-		input, output, cacheRead, cacheWrite := 0, 0, 0, 0
-		if m.Usage != nil {
-			input = m.Usage.Input
-			output = m.Usage.Output
-			cacheRead = m.Usage.CacheRead
-			cacheWrite = m.Usage.CacheWrite
-			tokens = m.Usage.TotalTokens
+		var ts int64
+		var tokens int
+		var cost float64
+		var input, output, cacheRead, cacheWrite int
+		// Try token_usage first
+		var tokenLine tokenUsageLine
+		if json.Unmarshal(line, &tokenLine) == nil && tokenLine.Type == "token_usage" {
+			ts = parseTimestampString(tokenLine.Timestamp)
+			if ts == 0 {
+				continue
+			}
+			u := tokenUsageToUsage(&tokenLine)
+			if u == nil {
+				continue
+			}
+			input = u.Input
+			output = u.Output
+			cacheRead = u.CacheRead
+			cacheWrite = u.CacheWrite
+			tokens = u.TotalTokens
 			if tokens == 0 {
 				tokens = input + output + cacheRead + cacheWrite
 			}
-			if m.Usage.Cost != nil {
-				cost = m.Usage.Cost.Total
+		} else {
+			var m TranscriptMessage
+			if json.Unmarshal(line, &m) != nil {
+				continue
+			}
+			ts = m.Timestamp
+			if ts == 0 {
+				continue
+			}
+			if m.Usage != nil {
+				input = m.Usage.Input
+				output = m.Usage.Output
+				cacheRead = m.Usage.CacheRead
+				cacheWrite = m.Usage.CacheWrite
+				tokens = m.Usage.TotalTokens
+				if tokens == 0 {
+					tokens = input + output + cacheRead + cacheWrite
+				}
+				if m.Usage.Cost != nil {
+					cost = m.Usage.Cost.Total
+				}
 			}
 		}
 		cumulativeTokens += tokens
