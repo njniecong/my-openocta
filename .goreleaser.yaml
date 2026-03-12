@@ -23,6 +23,8 @@ builds:
     dir: src
     main: ./cmd/openocta
     binary: openocta
+    flags:
+      - -trimpath
     goos:
       - linux
       - darwin

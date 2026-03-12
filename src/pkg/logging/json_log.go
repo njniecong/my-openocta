@@ -53,18 +53,14 @@ func callerPath(skip int) *LogPath {
 	if !ok {
 		return nil
 	}
-	dir, name := filepath.Split(file)
-	fullPath := filepath.Join(dir, name)
+	// 仅保留文件名和行号，避免在日志中泄露编译机器上的完整本地路径。
+	_, name := filepath.Split(file)
 	fileLine := fmt.Sprintf("%d", line)
 	fileNameWithLine := name + ":" + fileLine
-	filePathWithLine := fullPath + ":" + fileLine
 	return &LogPath{
-		FullFilePath:     "file://" + fullPath,
 		FileName:         name,
 		FileNameWithLine: fileNameWithLine,
 		FileLine:         fileLine,
-		FilePath:         fullPath,
-		FilePathWithLine: filePathWithLine,
 		Method:           "log",
 	}
 }

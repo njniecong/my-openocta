@@ -88,6 +88,10 @@ func runGateway(cmd *cobra.Command, _ []string) error {
 	}
 	logging.InitGlobal(logDir, opts)
 
+	// Redirect standard library logger (log.Printf, etc.) into the global logger,
+	// so logs from dependencies using the default logger are captured consistently.
+	logging.RedirectStdLog(logging.LevelInfo)
+
 	port := paths.ResolveGatewayPort(nil, env)
 	if gatewayPort > 0 {
 		port = gatewayPort
