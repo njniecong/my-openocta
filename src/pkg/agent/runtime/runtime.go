@@ -63,6 +63,15 @@ func New(ctx context.Context, opts Options) (*Runtime, error) {
 		Tools:        tools,
 		ProjectRoot:  projectRoot,
 	}
+	// 添加环境变量：1) 写入 SettingsOverrides.Env 供 hooks/settings 使用；2) 写入进程环境供 bash 等工具继承
+	if opts.Config.Env != nil && len(opts.Config.Env.Vars) > 0 {
+		apiOpts.SettingsOverrides.Env = opts.Config.Env.Vars
+		for k, v := range opts.Config.Env.Vars {
+			if k != "" {
+				_ = os.Setenv(k, v)
+			}
+		}
+	}
 	//if len(opts.MCPServers) > 0 {
 	//	apiOpts.MCPServers = opts.MCPServers
 	//	if opts.Config != nil && opts.Config.Mcp != nil {
@@ -266,15 +275,6 @@ func New(ctx context.Context, opts Options) (*Runtime, error) {
 		traceMW := middleware.NewTraceMiddleware(filepath.Join(projectRoot, ".trace"))
 		apiOpts.Middleware = []middleware.Middleware{
 			traceMW,
-		}
-	}
-	// 添加环境变量：1) 写入 SettingsOverrides.Env 供 hooks/settings 使用；2) 写入进程环境供 bash 等工具继承
-	if opts.Config.Env != nil && len(opts.Config.Env.Vars) > 0 {
-		apiOpts.SettingsOverrides.Env = opts.Config.Env.Vars
-		for k, v := range opts.Config.Env.Vars {
-			if k != "" {
-				_ = os.Setenv(k, v)
-			}
 		}
 	}
 
