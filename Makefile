@@ -57,9 +57,10 @@ imgs/openocta_logo_wails.png: imgs/openocta_logo.png
 		test -f "$(CURDIR)/imgs/openocta_logo_wails.png" || (echo "ERROR: 缺少 imgs/openocta_logo_wails.png。请在 macOS 执行: sips -Z 256 imgs/openocta_logo.png --out imgs/openocta_logo_wails.png"; exit 1); \
 	fi
 
-# OpenOcta 品牌：生成 Wails appicon.ico 与 NSIS 使用的 src/build/windows/icon.ico
+# OpenOcta 品牌：同步 PNG 到 Wails 默认路径（wails build 会据 appicon.png 生成 winres/syso），再生成 ICO。
 prepare-wails-icons: imgs/openocta_logo_wails.png
 	@mkdir -p src/build src/build/windows
+	@cp "$(CURDIR)/imgs/openocta_logo_wails.png" "$(CURDIR)/src/build/appicon.png"
 	node "$(CURDIR)/scripts/png-to-ico.mjs" "$(CURDIR)/imgs/openocta_logo_wails.png" "$(CURDIR)/src/build/appicon.ico"
 	@cp "$(CURDIR)/src/build/appicon.ico" "$(CURDIR)/src/build/windows/icon.ico"
 
@@ -76,5 +77,5 @@ wails-dmg: wails
 	./deploy/macos/build-app.sh
 
 # Wails 开发模式（热重载）
-wails-dev: embed
+wails-dev: embed prepare-wails-icons
 	cd src && wails dev

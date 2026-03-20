@@ -3,6 +3,8 @@
 ; - Creates Start Menu + Desktop shortcuts
 ; - Registers auto-start (current user)
 
+Unicode true
+
 !include "MUI2.nsh"
 
 Name "OpenOcta"

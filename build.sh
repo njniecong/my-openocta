@@ -32,7 +32,18 @@ do_build() {
 
 do_clean() {
   echo "==> 清理..."
-  rm -rf dist src/embed/frontend openocta openocta.exe
+  # 与 Makefile clean 对齐：embed 产物、Go 二进制、Wails 输出；根目录 build/ 为历史遗留副本，一并删除
+  rm -rf \
+    dist \
+    build \
+    src/embed/frontend \
+    src/embed/config-schema.json \
+    src/embed/openocta.json.example \
+    src/build/bin \
+    openocta \
+    openocta.exe \
+    openocta-launcher \
+    openocta-launcher.exe
   echo "==> 清理完成"
 }
 
