@@ -2,13 +2,7 @@ import { gatewayHttpBase } from "../gateway-url.ts";
 
 function getBaseUrl(gatewayHost?: string): string {
   if (typeof window === "undefined") return "";
-  if (gatewayHost?.trim()) {
-    return gatewayHttpBase(gatewayHost);
-  }
-  if (window.location?.port === "5173") {
-    return "http://127.0.0.1:18900";
-  }
-  return "";
+  return gatewayHttpBase(gatewayHost ?? "");
 }
 
 async function localGet<T>(path: string, gatewayHost?: string, token?: string): Promise<T> {
@@ -139,7 +133,7 @@ export type EduCategory = {
 /**
  * 将后端返回的 logo 路径解析为可用的 URL。
  * 若为相对路径（如 /uploads/logos/xxx.png），则通过 gateway 代理获取。
- * 开发环境（Vite 5173）下使用完整 gateway 地址，避免 img 请求发到前端 dev server。
+ * 开发环境下会回到当前 dev server origin，再由 Vite 代理到真实 gateway。
  */
 export function resolveLogoUrl(url: string | undefined, gatewayHost?: string): string | undefined {
   const v = (url ?? "").trim();
@@ -256,4 +250,3 @@ export async function installFromSite(req: InstallRequest, opts?: RemoteMarketOp
     throw new Error(msg);
   }
 }
-
