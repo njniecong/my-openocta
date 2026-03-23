@@ -65,7 +65,8 @@ export type EmployeeDetail = EmployeeListItem & {
 };
 
 export type McpListItem = {
-  id: number;
+  /** 官网为 number；仅本地配置项为 `local:<serverKey>` */
+  id: number | string;
   name: string;
   description?: string;
   logo_url?: string;
@@ -186,8 +187,8 @@ export async function fetchMcps(
   return await localGet<McpListItem[]>(`/api/v1/mcps${toQuery(params)}`, opts?.gatewayHost, opts?.token);
 }
 
-export async function fetchMcpDetail(id: number, opts?: RemoteMarketOptions) {
-  return await localGet<McpDetail>(`/api/v1/mcps/${id}`, opts?.gatewayHost, opts?.token);
+export async function fetchMcpDetail(id: number | string, opts?: RemoteMarketOptions) {
+  return await localGet<McpDetail>(`/api/v1/mcps/${encodeURIComponent(String(id))}`, opts?.gatewayHost, opts?.token);
 }
 
 export async function fetchSkills(

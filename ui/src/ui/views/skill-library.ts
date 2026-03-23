@@ -166,7 +166,8 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
       : [{ name: activeCategory, items: grouped.get(activeCategory) ?? [] }];
 
   const showDetailModal = Boolean(props.selectedFolder);
-  const closeDetail = () => props.onDetailClose?.() ?? props.onSelect("");
+  const closeDetail = () =>
+    props.onDetailClose ? props.onDetailClose() : props.onSelect("");
 
   return html`
     <main class="emp-page">
@@ -225,8 +226,8 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
                               ${props.onToggleEnabled ? html`<button class="market-card-icon-btn" title=${enabled ? "禁用" : "启用"} @click=${(e: Event) => { e.stopPropagation(); void props.onToggleEnabled!(it.folder, !enabled); }}>${enabled ? icon("powerOff") : icon("power")}</button>` : nothing}
                               ${props.onDelete ? html`<button class="market-card-icon-btn danger" title="删除" @click=${(e: Event) => { e.stopPropagation(); void props.onDelete!(it.folder); }}>${icon("trash")}</button>` : nothing}
                             </div>
-                            <h3 class="emp-card__title">${it.name}</h3>
-                            <p class="emp-card__desc">${it.description ?? it.folder}</p>
+                            <h3 class="emp-card__title">${it.folder}</h3>
+                            <p class="emp-card__desc">${it.description ?? "暂无描述"}</p>
                             <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
                               ${status ? html`<span class="badge">${status}</span>` : html`<span class="badge ghost">未标注</span>`}
                               ${tags.slice(0, 3).map((t) => html`<span class="badge ghost">${t}</span>`)}
@@ -395,8 +396,8 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
                                               >${installing ? icon("loader2") : icon("download")}</button>`
                                             : html`<a class="market-card-icon-btn primary" href=${`/api/v1/skills/${encodeURIComponent(it.folder)}/download`} target="_blank" rel="noopener" title="下载" @click=${(e: Event) => e.stopPropagation()}>${icon("download")}</a>`}
                                       </div>
-                                      <h3 class="emp-card__title">${it.name}</h3>
-                                      <p class="emp-card__desc">${it.description ?? it.folder}</p>
+                                      <h3 class="emp-card__title">${it.folder}</h3>
+                                      <p class="emp-card__desc">${it.description ?? "暂无描述"}</p>
                                       <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
                                         ${status
                                           ? html`<span class="badge">${status}</span>`

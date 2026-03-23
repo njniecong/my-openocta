@@ -25,7 +25,7 @@ export type ToolLibraryProps = {
   query: string;
   category?: string;
   items: McpListItem[];
-  selectedId: number | null;
+  selectedId: number | string | null;
   selectedDetail: McpDetail | null;
   onQueryChange: (next: string) => void;
   onCategoryChange?: (next: string) => void;
@@ -46,17 +46,17 @@ export type ToolLibraryProps = {
   onAddConnectionTypeChange?: (type: "stdio" | "url" | "service") => void;
   onAddEditModeChange?: (mode: "form" | "raw") => void;
   onAddSubmit?: () => void;
-  onSelect: (id: number) => void;
+  onSelect: (id: number | string) => void;
   onDetailClose?: () => void;
   installedRemoteIds?: Set<string>;
   disabledMcpKeys?: Set<string>;
   installingId?: number | null;
-  onInstall?: (id: number, category?: string) => Promise<void>;
+  onInstall?: (id: number | string, category?: string) => Promise<void>;
   onDelete?: (serverKey: string) => Promise<void>;
   onToggleEnabled?: (serverKey: string, enabled: boolean) => Promise<void>;
   /** 修改 MCP 配置（serverKey 为 mcp.servers 中的 key） */
   onEdit?: (serverKey: string) => void;
-  installedMcpMap?: Map<number, string>;
+  installedMcpMap?: Map<number | string, string>;
 };
 
 function normalizeCategory(raw?: string) {
@@ -171,7 +171,9 @@ export function renderToolLibrary(props: ToolLibraryProps) {
       : [{ title: effectiveCategory, items: filteredItems }];
 
   const showDetailModal = props.selectedDetail !== null;
-  const closeDetail = () => props.onDetailClose?.() ?? props.onSelect(-1);
+  // 勿用 ??：onDetailClose() 返回 void/undefined 时仍会误触发 onSelect(-1) → 请求 mcps/-1
+  const closeDetail = () =>
+    props.onDetailClose ? props.onDetailClose() : props.onSelect(-1);
 
   return html`
     <main class="emp-page">

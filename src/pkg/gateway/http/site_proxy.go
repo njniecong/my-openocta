@@ -7,11 +7,15 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	agentSkills "github.com/openocta/openocta/pkg/agent/skills"
 	"github.com/openocta/openocta/pkg/employees"
+	"github.com/openocta/openocta/pkg/gateway/handlers"
 	"github.com/openocta/openocta/pkg/installmetadata"
 )
 
@@ -69,6 +73,173 @@ func (s *Server) siteAPIBaseURL() string {
 		return "http://localhost:9889"
 	}
 	return strings.TrimRight(raw, "/")
+}
+
+// mergeSkillsListWithLocalManaged 合并官网技能列表与 ~/.openocta/skills 下本地技能（含用户上传），并刷新 installed。
+func mergeSkillsListWithLocalManaged(skills []map[string]interface{}, env func(string) string) []map[string]interface{} {
+	if skills == nil {
+		skills = []map[string]interface{}{}
+	}
+	managedDir := handlers.ResolveManagedSkillsDir(env)
+	skillInstallSet := installmetadata.SkillInstallSet(env)
+	remoteFolders := make(map[string]struct{}, len(skills))
+	for i := range skills {
+		folder, ok := skills[i]["folder"].(string)
+		if !ok {
+			continue
+		}
+		folder = strings.TrimSpace(folder)
+		if folder == "" {
+			continue
+		}
+		remoteFolders[folder] = struct{}{}
+		if _, ok := skillInstallSet[folder]; ok {
+			skills[i]["installed"] = true
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(managedDir, folder, "SKILL.md")); err == nil {
+			skills[i]["installed"] = true
+		}
+	}
+	entries, err := agentSkills.LoadEntriesFromDir(managedDir, "openocta-managed")
+	if err != nil || len(entries) == 0 {
+		return skills
+	}
+	var extras []map[string]interface{}
+	for _, e := range entries {
+		folder := strings.TrimSpace(filepath.Base(e.BaseDir))
+		if folder == "" || folder == "." {
+			continue
+		}
+		if _, exists := remoteFolders[folder]; exists {
+			continue
+		}
+		desc := ""
+		if e.Frontmatter != nil {
+			desc = strings.TrimSpace(e.Frontmatter["description"])
+		}
+		name := strings.TrimSpace(e.Name)
+		if name == "" {
+			name = folder
+		}
+		item := map[string]interface{}{
+			"folder":      folder,
+			"name":        name,
+			"description": desc,
+			"categoryCn":  "本地",
+			"tags":        "",
+			"status":      "open",
+			"installed":   true,
+		}
+		if e.Metadata != nil {
+			if em := strings.TrimSpace(e.Metadata.Emoji); em != "" {
+				item["emoji"] = em
+			}
+		}
+		extras = append(extras, item)
+	}
+	sort.Slice(extras, func(i, j int) bool {
+		fi, _ := extras[i]["folder"].(string)
+		fj, _ := extras[j]["folder"].(string)
+		return fi < fj
+	})
+	return append(skills, extras...)
+}
+
+// appendLocalOnlyMcpsToMarketList 追加仅存在于本地配置、且未与官网安装元数据关联的 MCP 服务器（用户手动添加）。
+func appendLocalOnlyMcpsToMarketList(mcps []map[string]interface{}, env func(string) string) []map[string]interface{} {
+	if mcps == nil {
+		mcps = []map[string]interface{}{}
+	}
+	snap, err := handlers.LoadConfigSnapshot(env)
+	if err != nil || snap.Config == nil || snap.Config.Mcp == nil || len(snap.Config.Mcp.Servers) == 0 {
+		return mcps
+	}
+	mcpInstallMap := installmetadata.McpInstallMap(env)
+	marketLinkedKeys := make(map[string]struct{})
+	for _, sk := range mcpInstallMap {
+		sk = strings.TrimSpace(sk)
+		if sk != "" {
+			marketLinkedKeys[sk] = struct{}{}
+		}
+	}
+	var extras []map[string]interface{}
+	for key := range snap.Config.Mcp.Servers {
+		key = strings.TrimSpace(key)
+		if key == "" {
+			continue
+		}
+		if _, linked := marketLinkedKeys[key]; linked {
+			continue
+		}
+		extras = append(extras, map[string]interface{}{
+			"id":          "local:" + key,
+			"name":        key,
+			"description": "本地配置的 MCP 服务器",
+			"category":    "本地",
+			"status":      "open",
+			"tags":        "",
+			"installed":   true,
+			"serverKey":   key,
+		})
+	}
+	sort.Slice(extras, func(i, j int) bool {
+		ni, _ := extras[i]["name"].(string)
+		nj, _ := extras[j]["name"].(string)
+		return ni < nj
+	})
+	return append(mcps, extras...)
+}
+
+func tryWriteLocalSkillDetail(w http.ResponseWriter, managedDir, folder string) bool {
+	skillFile := filepath.Join(managedDir, folder, "SKILL.md")
+	data, err := os.ReadFile(skillFile)
+	if err != nil {
+		return false
+	}
+	setSiteProxyCORSHeaders(w)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	out := map[string]interface{}{
+		"content":   string(data),
+		"installed": true,
+	}
+	_ = json.NewEncoder(w).Encode(out)
+	return true
+}
+
+func serveLocalMcpDetailJSON(w http.ResponseWriter, serverKey string, env func(string) string) bool {
+	snap, err := handlers.LoadConfigSnapshot(env)
+	if err != nil || snap.Config == nil || snap.Config.Mcp == nil {
+		return false
+	}
+	entry, ok := snap.Config.Mcp.Servers[serverKey]
+	if !ok {
+		return false
+	}
+	raw, err := json.Marshal(entry)
+	if err != nil {
+		return false
+	}
+	var cfgObj map[string]interface{}
+	if err := json.Unmarshal(raw, &cfgObj); err != nil {
+		return false
+	}
+	detail := map[string]interface{}{
+		"id":          "local:" + serverKey,
+		"name":        serverKey,
+		"description": "本地配置的 MCP 服务器",
+		"category":    "本地",
+		"status":      "open",
+		"installed":   true,
+		"serverKey":   serverKey,
+		"config":      cfgObj,
+	}
+	setSiteProxyCORSHeaders(w)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(detail)
+	return true
 }
 
 func (s *Server) proxySiteGET(w http.ResponseWriter, r *http.Request, upstreamPath string) {
@@ -320,6 +491,7 @@ func (s *Server) handleSiteMcps(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	mcps = appendLocalOnlyMcpsToMarketList(mcps, env)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(mcps)
@@ -328,6 +500,19 @@ func (s *Server) handleSiteMcps(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleSiteMcpDetail(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" || strings.Contains(id, "/") {
+		http.NotFound(w, r)
+		return
+	}
+	env := func(k string) string { return os.Getenv(k) }
+	if strings.HasPrefix(id, "local:") {
+		sk := strings.TrimSpace(strings.TrimPrefix(id, "local:"))
+		if sk == "" || strings.Contains(sk, "/") {
+			http.NotFound(w, r)
+			return
+		}
+		if serveLocalMcpDetailJSON(w, sk, env) {
+			return
+		}
 		http.NotFound(w, r)
 		return
 	}
@@ -355,7 +540,6 @@ func (s *Server) handleSiteMcpDetail(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(body)
 		return
 	}
-	env := func(k string) string { return os.Getenv(k) }
 	mcpMap := installmetadata.McpInstallMap(env)
 	if serverKey, ok := mcpMap[id]; ok {
 		detail["installed"] = true
@@ -372,6 +556,15 @@ func (s *Server) handleSiteMcpDownload(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" || strings.Contains(id, "/") {
 		http.NotFound(w, r)
+		return
+	}
+	if strings.HasPrefix(id, "local:") {
+		setSiteProxyCORSHeaders(w)
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": "本地 MCP 无需下载",
+		})
 		return
 	}
 	s.proxySiteGET(w, r, "/api/v1/mcps/"+url.PathEscape(id)+"/download")
@@ -406,14 +599,7 @@ func (s *Server) handleSiteSkills(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	env := func(k string) string { return os.Getenv(k) }
-	skillInstallSet := installmetadata.SkillInstallSet(env)
-	for i := range skills {
-		if folder, ok := skills[i]["folder"].(string); ok && folder != "" {
-			if _, ok := skillInstallSet[folder]; ok {
-				skills[i]["installed"] = true
-			}
-		}
-	}
+	skills = mergeSkillsListWithLocalManaged(skills, env)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(skills)
@@ -425,6 +611,8 @@ func (s *Server) handleSiteSkillDetail(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	env := func(k string) string { return os.Getenv(k) }
+	managedDir := handlers.ResolveManagedSkillsDir(env)
 	base := s.siteAPIBaseURL()
 	u, err := url.Parse(base)
 	if err != nil {
@@ -437,11 +625,24 @@ func (s *Server) handleSiteSkillDetail(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{Timeout: 8 * time.Second}
 	res, err := client.Do(req)
 	if err != nil {
+		if tryWriteLocalSkillDetail(w, managedDir, folder) {
+			return
+		}
 		writeSiteProxyFailure(w, http.StatusBadGateway, err.Error(), u.String())
 		return
 	}
 	defer res.Body.Close()
 	body, _ := io.ReadAll(res.Body)
+	if res.StatusCode == http.StatusNotFound {
+		if tryWriteLocalSkillDetail(w, managedDir, folder) {
+			return
+		}
+		setSiteProxyCORSHeaders(w)
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write(body)
+		return
+	}
 	var detail map[string]interface{}
 	if err := json.Unmarshal(body, &detail); err != nil {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -449,9 +650,10 @@ func (s *Server) handleSiteSkillDetail(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(body)
 		return
 	}
-	env := func(k string) string { return os.Getenv(k) }
 	skillSet := installmetadata.SkillInstallSet(env)
 	if _, ok := skillSet[folder]; ok {
+		detail["installed"] = true
+	} else if _, err := os.Stat(filepath.Join(managedDir, folder, "SKILL.md")); err == nil {
 		detail["installed"] = true
 	}
 	setSiteProxyCORSHeaders(w)

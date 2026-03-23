@@ -346,10 +346,10 @@ export type AppViewState = {
   toolLibraryQuery: string;
   toolLibraryCategory: string;
   toolLibraryItems: import("./controllers/remote-market.ts").McpListItem[];
-  toolLibrarySelectedId: number | null;
+  toolLibrarySelectedId: number | string | null;
   toolLibrarySelectedDetail: import("./controllers/remote-market.ts").McpDetail | null;
   toolLibraryInstalledRemoteIds: Set<string>;
-  toolLibraryInstalledMcpMap: Map<number, string>;
+  toolLibraryInstalledMcpMap: Map<number | string, string>;
   toolLibraryInstallingId: number | null;
   toolLibraryMcpEditModalOpen: boolean;
   toolLibraryMcpEditServerKey: string;

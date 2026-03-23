@@ -453,10 +453,10 @@ export class OpenClawApp extends LitElement {
   @state() toolLibraryQuery = "";
   @state() toolLibraryCategory = "__all__";
   @state() toolLibraryItems: import("./controllers/remote-market.ts").McpListItem[] = [];
-  @state() toolLibrarySelectedId: number | null = null;
+  @state() toolLibrarySelectedId: number | string | null = null;
   @state() toolLibrarySelectedDetail: import("./controllers/remote-market.ts").McpDetail | null = null;
   @state() toolLibraryInstalledRemoteIds = new Set<string>();
-  @state() toolLibraryInstalledMcpMap = new Map<number, string>();
+  @state() toolLibraryInstalledMcpMap = new Map<number | string, string>();
   @state() toolLibraryInstallingId: number | null = null;
   @state() toolLibraryMcpEditModalOpen = false;
   @state() toolLibraryMcpEditServerKey = "";
