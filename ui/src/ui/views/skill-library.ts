@@ -226,7 +226,8 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
       : [{ name: activeCategory, items: grouped.get(activeCategory) ?? [] }];
 
   const showDetailModal = Boolean(props.selectedFolder);
-  const closeDetail = () => props.onDetailClose?.() ?? props.onSelect("");
+  const closeDetail = () =>
+    props.onDetailClose ? props.onDetailClose() : props.onSelect("");
 
   return html`
     <main class="emp-page">
@@ -283,8 +284,8 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
                             <div class="emp-card__actions">
                               ${renderSkillCardActions(props, it.folder, true, enabled, installing, it.categoryCn)}
                             </div>
-                            <h3 class="emp-card__title">${it.name}</h3>
-                            <p class="emp-card__desc">${it.description ?? it.folder}</p>
+                            <h3 class="emp-card__title">${it.name || it.folder}</h3>
+                            <p class="emp-card__desc">${it.description ?? it.folder ?? "暂无描述"}</p>
                             ${renderSkillMeta(tags, os, status, enabled)}
                           </div>
                         </div>
@@ -428,8 +429,8 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
                                           it.categoryCn,
                                         )}
                                       </div>
-                                      <h3 class="emp-card__title">${it.name}</h3>
-                                      <p class="emp-card__desc">${it.description ?? it.folder}</p>
+                                      <h3 class="emp-card__title">${it.name || it.folder}</h3>
+                                      <p class="emp-card__desc">${it.description ?? it.folder ?? "暂无描述"}</p>
                                       ${renderSkillMeta(tags, os, status, enabled)}
                                     </div>
                                   </div>

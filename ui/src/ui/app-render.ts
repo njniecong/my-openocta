@@ -1830,7 +1830,7 @@ export function renderApp(state: AppViewState) {
                     // 从 API 响应（含 .install-metadata.json）推导已安装状态
                     const mcpItems = state.toolLibraryItems;
                     const mcpInstalled = new Set<string>();
-                    const mcpMap = new Map<number, string>();
+                    const mcpMap = new Map<number | string, string>();
                     for (const it of mcpItems) {
                       if (it.installed && it.serverKey) {
                         mcpInstalled.add(String(it.id));
@@ -1889,6 +1889,7 @@ export function renderApp(state: AppViewState) {
                 installingId: state.toolLibraryInstallingId,
                 installedMcpMap: state.toolLibraryInstalledMcpMap,
                 onInstall: async (id, category) => {
+                  if (typeof id !== "number") return;
                   state.toolLibraryInstallingId = id;
                   state.toolLibraryError = null;
                   try {
@@ -1911,7 +1912,7 @@ export function renderApp(state: AppViewState) {
                 onDelete: async (serverKey) => {
                   state.toolLibraryError = null;
                   handleMcpDelete(state, serverKey);
-                  let ridToRemove: number | null = null;
+                  let ridToRemove: number | string | null = null;
                   for (const [rid, sk] of state.toolLibraryInstalledMcpMap) {
                     if (sk === serverKey) {
                       ridToRemove = rid;
@@ -1949,6 +1950,7 @@ export function renderApp(state: AppViewState) {
                   state.toolLibrarySelectedId = id;
                   state.toolLibrarySelectedDetail = null;
                   state.toolLibraryError = null;
+                  if (typeof id === "number" && id < 0) return;
                   try {
                     state.toolLibrarySelectedDetail = await fetchMcpDetail(id, {
                       gatewayHost: state.settings?.gatewayUrl?.trim(),

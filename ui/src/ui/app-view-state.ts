@@ -117,6 +117,14 @@ export type AppViewState = {
   whatsappLoginQrDataUrl: string | null;
   whatsappLoginConnected: boolean | null;
   whatsappBusy: boolean;
+  weworkQrModalOpen: boolean;
+  weworkQrModalLoading: boolean;
+  weworkQrModalPolling: boolean;
+  weworkQrModalSuccess: boolean;
+  weworkQrModalError: string | null;
+  weworkQrModalReplaceWarn: boolean;
+  weworkQrModalAuthUrl: string | null;
+  weworkQrModalGenPageUrl: string | null;
   nostrProfileFormState: NostrProfileFormState | null;
   nostrProfileAccountId: string | null;
   configFormDirty: boolean;
@@ -338,10 +346,10 @@ export type AppViewState = {
   toolLibraryQuery: string;
   toolLibraryCategory: string;
   toolLibraryItems: import("./controllers/remote-market.ts").McpListItem[];
-  toolLibrarySelectedId: number | null;
+  toolLibrarySelectedId: number | string | null;
   toolLibrarySelectedDetail: import("./controllers/remote-market.ts").McpDetail | null;
   toolLibraryInstalledRemoteIds: Set<string>;
-  toolLibraryInstalledMcpMap: Map<number, string>;
+  toolLibraryInstalledMcpMap: Map<number | string, string>;
   toolLibraryInstallingId: number | null;
   toolLibraryMcpEditModalOpen: boolean;
   toolLibraryMcpEditServerKey: string;
@@ -391,6 +399,8 @@ export type AppViewState = {
   handleWhatsAppStart: (force: boolean) => Promise<void>;
   handleWhatsAppWait: () => Promise<void>;
   handleWhatsAppLogout: () => Promise<void>;
+  handleWeWorkQrStart: () => Promise<void>;
+  handleWeWorkQrModalClose: () => void;
   handleChannelConfigSave: () => Promise<void>;
   handleChannelConfigReload: () => Promise<void>;
   handleNostrProfileEdit: (accountId: string, profile: NostrProfile | null) => void;
