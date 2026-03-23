@@ -6,7 +6,7 @@ function getBaseUrl(gatewayHost?: string): string {
     return gatewayHttpBase(gatewayHost);
   }
   if (window.location?.port === "5173") {
-    return "http://127.0.0.1:18900";
+    // return "http://127.0.0.1:18900";
   }
   return "";
 }
