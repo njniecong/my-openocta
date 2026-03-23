@@ -43,21 +43,25 @@ describe("chat focus mode", () => {
     await app.updateComplete;
     expect(shell?.classList.contains("shell--chat-focus")).toBe(true);
 
-    const link = app.querySelector<HTMLAnchorElement>('a.nav-item[href="/channels"]');
-    expect(link).not.toBeNull();
-    link?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
+    const configTab = Array.from(app.querySelectorAll<HTMLButtonElement>("button.top-tab")).find((button) =>
+      button.textContent?.includes("配置"),
+    );
+    expect(configTab).not.toBeUndefined();
+    configTab?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
 
     await app.updateComplete;
-    expect(app.tab).toBe("channels");
+    expect(app.tab).toBe("overview");
     expect(shell?.classList.contains("shell--chat-focus")).toBe(false);
 
-    const chatLink = app.querySelector<HTMLAnchorElement>('a.nav-item[href="/chat"]');
-    chatLink?.dispatchEvent(
+    const messageTab = Array.from(app.querySelectorAll<HTMLButtonElement>("button.top-tab")).find((button) =>
+      button.textContent?.includes("消息"),
+    );
+    messageTab?.dispatchEvent(
       new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }),
     );
 
     await app.updateComplete;
-    expect(app.tab).toBe("chat");
+    expect(app.tab).toBe("message");
     expect(shell?.classList.contains("shell--chat-focus")).toBe(true);
   });
 });

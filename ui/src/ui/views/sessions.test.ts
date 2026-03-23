@@ -23,10 +23,17 @@ function buildProps(result: SessionsListResult): SessionsProps {
     includeGlobal: false,
     includeUnknown: false,
     basePath: "",
+    bulkMode: false,
+    selectedKeys: [],
     onFiltersChange: () => undefined,
     onRefresh: () => undefined,
     onPatch: () => undefined,
     onDelete: () => undefined,
+    onBulkModeToggle: () => undefined,
+    onSelectionChange: () => undefined,
+    onSelectAll: () => undefined,
+    onClearSelection: () => undefined,
+    onBulkDelete: () => undefined,
   };
 }
 

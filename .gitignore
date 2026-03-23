@@ -14,7 +14,7 @@
 ./.claude-trace/
 ./.idea/
 ./openocta
-./.DS_Store
+.DS_Store
 ./src/.DS_Store
 ./docs/
 **/.DS_Store

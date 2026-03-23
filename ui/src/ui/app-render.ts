@@ -226,6 +226,11 @@ export function renderApp(state: AppViewState) {
   const basePath = normalizeBasePath(state.basePath ?? "");
   const isScheduledTasks =
     state.tab === "scheduledTasks" || state.tab === "cronHistory" || state.tab === "cron";
+  const isCatalogArea =
+    state.tab === "employeeMarket" ||
+    state.tab === "skillLibrary" ||
+    state.tab === "toolLibrary" ||
+    state.tab === "tutorials";
   const isConfigArea =
     state.tab === "config" ||
     state.tab === "envVars" ||
@@ -240,7 +245,7 @@ export function renderApp(state: AppViewState) {
     state.tab === "llmTrace" ||
     state.tab === "aboutUs";
   return html`
-    <div class="shell ${isChat ? "shell--chat" : ""} ${chatFocus ? "shell--chat-focus" : ""} ${state.settings.navCollapsed ? "shell--nav-collapsed" : ""} ${state.onboarding ? "shell--onboarding" : ""}">
+    <div class="shell ${isChat ? "shell--chat" : ""} ${isCatalogArea ? "shell--catalog" : ""} ${chatFocus ? "shell--chat-focus" : ""} ${state.settings.navCollapsed ? "shell--nav-collapsed" : ""} ${state.onboarding ? "shell--onboarding" : ""}">
       <header class="topbar">
         <div class="topbar-left">
           <div class="brand">
@@ -302,9 +307,9 @@ export function renderApp(state: AppViewState) {
           })}
         </nav>
         <div class="topbar-status">
-          <div class="pill">
+          <div class="pill pill--version">
             <span>Version</span>
-            <span class="mono">${state.configSchemaVersion ?? "---"}</span>
+            <span>${state.configSchemaVersion ?? "---"}</span>
           </div>
           <div class="pill">
             <button
@@ -345,11 +350,11 @@ export function renderApp(state: AppViewState) {
           <div class="pill">
             <span class="statusDot ${state.connected ? "ok" : ""}"></span>
             <span>Health</span>
-            <span class="mono">${state.connected ? "OK" : "Offline"}</span>
+            <span>${state.connected ? "OK" : "Offline"}</span>
           </div>
         </div>
       </header>
-      <aside class="nav ${state.settings.navCollapsed ? "nav--collapsed" : ""}">
+      <aside class="nav ${isCatalogArea ? "nav--catalog" : ""} ${state.settings.navCollapsed ? "nav--collapsed" : ""}">
         ${
           state.tab === "message"
             ? html`
@@ -701,16 +706,20 @@ export function renderApp(state: AppViewState) {
                       : html`<div class="nav-empty"></div>`
         }
       </aside>
-      <main class="content ${isChat ? "content--chat" : ""} ${state.tab === "llmTrace" && state.llmTraceViewingSessionId != null ? "content--llm-trace-detail" : ""}">
-        <section class="content-header">
-          <div>
-            ${state.tab === "usage" ? nothing : html`<div class="page-title">${titleForTab(state.tab)}</div>`}
-          </div>
-          <div class="page-meta">
-            ${state.lastError ? html`<div class="pill danger">${state.lastError}</div>` : nothing}
-            ${isChat ? renderChatControls(state) : nothing}
-          </div>
-        </section>
+      <main class="content ${isChat ? "content--chat" : ""} ${isCatalogArea ? "content--catalog" : ""} ${state.tab === "llmTrace" && state.llmTraceViewingSessionId != null ? "content--llm-trace-detail" : ""}">
+        ${isCatalogArea
+          ? nothing
+          : html`
+              <section class="content-header">
+                <div>
+                  ${state.tab === "usage" ? nothing : html`<div class="page-title">${titleForTab(state.tab)}</div>`}
+                </div>
+                <div class="page-meta">
+                  ${state.lastError ? html`<div class="pill danger">${state.lastError}</div>` : nothing}
+                  ${isChat ? renderChatControls(state) : nothing}
+                </div>
+              </section>
+            `}
 
         ${
           state.tab === "overview"

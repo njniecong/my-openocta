@@ -296,7 +296,7 @@ function renderRow(
   const thinking = resolveThinkLevelDisplay(rawThinking, isBinaryThinking);
   const thinkLevels = withCurrentOption(resolveThinkLevelOptions(row.modelProvider), thinking);
   const verbose = row.verboseLevel ?? "";
-  // const verboseLevels = withCurrentLabeledOption(VERBOSE_LEVELS, verbose);
+  const verboseLevels = withCurrentLabeledOption(getVerboseLevels(), verbose);
   const reasoning = row.reasoningLevel ?? "";
   const reasoningLevels = withCurrentOption(REASONING_LEVELS, reasoning);
   const displayName =
@@ -349,6 +349,7 @@ function renderRow(
       <div>${formatSessionTokens(row)}</div>
       <div>
         <select
+          .value=${thinking}
           ?disabled=${disabled}
           @change=${(e: Event) => {
             const value = (e.target as HTMLSelectElement).value;
@@ -357,32 +358,39 @@ function renderRow(
             });
           }}
         >
-          ${thinkLevels.map((level) => html`<option value=${level}>${level || t("commonInherit")}</option>`)}
+          ${thinkLevels.map(
+            (level) =>
+              html`<option value=${level} ?selected=${level === thinking}>${level || t("commonInherit")}</option>`,
+          )}
         </select>
       </div>
       <div>
         <select
+          .value=${verbose}
           ?disabled=${disabled}
           @change=${(e: Event) => {
             const value = (e.target as HTMLSelectElement).value;
             onPatch(row.key, { verboseLevel: value || null });
           }}
         >
-          ${getVerboseLevels().map(
-            (level) => html`<option value=${level.value}>${level.label}</option>`,
+          ${verboseLevels.map(
+            (level) =>
+              html`<option value=${level.value} ?selected=${level.value === verbose}>${level.label}</option>`,
           )}
         </select>
       </div>
       <div>
         <select
+          .value=${reasoning}
           ?disabled=${disabled}
           @change=${(e: Event) => {
             const value = (e.target as HTMLSelectElement).value;
             onPatch(row.key, { reasoningLevel: value || null });
           }}
         >
-          ${REASONING_LEVELS.map(
-            (level) => html`<option value=${level}>${level || t("commonInherit")}</option>`,
+          ${reasoningLevels.map(
+            (level) =>
+              html`<option value=${level} ?selected=${level === reasoning}>${level || t("commonInherit")}</option>`,
           )}
         </select>
       </div>

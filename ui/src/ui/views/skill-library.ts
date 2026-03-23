@@ -1,7 +1,6 @@
 import { html, nothing } from "lit";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import type { SkillDetail, SkillListItem } from "../controllers/remote-market.ts";
-import { icon } from "../icons.ts";
 import { toSanitizedMarkdownHtml } from "../markdown.ts";
 import { t } from "../strings.js";
 
@@ -131,6 +130,67 @@ function statusLabel(status?: string) {
   return status ?? "";
 }
 
+function renderSkillCardActions(
+  props: SkillLibraryProps,
+  folder: string,
+  installed: boolean,
+  enabled: boolean,
+  installing: boolean,
+  category?: string
+) {
+  if (installed) {
+    return html`
+      <div class="market-card-actions">
+        ${props.onDelete
+          ? html`<button class="market-card-button market-card-button--danger" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onDelete!(folder); }}>删除</button>`
+          : nothing}
+        ${props.onToggleEnabled
+          ? html`<button class="market-card-button market-card-button--ghost" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onToggleEnabled!(folder, !enabled); }}>${enabled ? "禁用" : "启用"}</button>`
+          : nothing}
+      </div>
+    `;
+  }
+  if (props.onInstall) {
+    return html`
+      <button
+        class="market-card-button market-card-button--primary"
+        type="button"
+        ?disabled=${installing}
+        @click=${(e: Event) => {
+          e.stopPropagation();
+          void props.onInstall!(folder, category);
+        }}
+      >
+        ${installing ? "安装中" : "安装"}
+      </button>
+    `;
+  }
+  return html`
+    <a
+      class="market-card-button market-card-button--primary"
+      href=${`/api/v1/skills/${encodeURIComponent(folder)}/download`}
+      target="_blank"
+      rel="noopener"
+      title="下载"
+      @click=${(e: Event) => e.stopPropagation()}
+    >
+      安装
+    </a>
+  `;
+}
+
+function renderSkillMeta(tags: string[], os: string[], status: string, enabled: boolean) {
+  return html`
+    <div class="market-card-meta">
+      <span class="market-card-chip market-card-chip--muted">eligible</span>
+      <span class="market-card-chip market-card-chip--state">${enabled ? "已启用" : "已禁用"}</span>
+      ${status ? html`<span class="market-card-chip">${status}</span>` : nothing}
+      ${tags.slice(0, 2).map((t) => html`<span class="market-card-chip">${t}</span>`)}
+      ${os.length > 0 ? html`<span class="market-card-chip">OS: ${os.join("/")}</span>` : nothing}
+    </div>
+  `;
+}
+
 export function renderSkillLibrary(props: SkillLibraryProps) {
   const categoryList = uniqueCategories(props.items);
   const activeCategory = props.selectedCategory || "__all__";
@@ -221,17 +281,11 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
                               ${it.emoji ? it.emoji : SKILL_ICON_SVG}
                             </div>
                             <div class="emp-card__actions">
-                              <span class="market-card-status">${enabled ? "启用" : "禁用"}</span>
-                              ${props.onToggleEnabled ? html`<button class="market-card-icon-btn" title=${enabled ? "禁用" : "启用"} @click=${(e: Event) => { e.stopPropagation(); void props.onToggleEnabled!(it.folder, !enabled); }}>${enabled ? icon("powerOff") : icon("power")}</button>` : nothing}
-                              ${props.onDelete ? html`<button class="market-card-icon-btn danger" title="删除" @click=${(e: Event) => { e.stopPropagation(); void props.onDelete!(it.folder); }}>${icon("trash")}</button>` : nothing}
+                              ${renderSkillCardActions(props, it.folder, true, enabled, installing, it.categoryCn)}
                             </div>
                             <h3 class="emp-card__title">${it.name}</h3>
                             <p class="emp-card__desc">${it.description ?? it.folder}</p>
-                            <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
-                              ${status ? html`<span class="badge">${status}</span>` : html`<span class="badge ghost">未标注</span>`}
-                              ${tags.slice(0, 3).map((t) => html`<span class="badge ghost">${t}</span>`)}
-                              ${os.length > 0 ? html`<span class="badge ghost">OS: ${os.join("/")}</span>` : nothing}
-                            </div>
+                            ${renderSkillMeta(tags, os, status, enabled)}
                           </div>
                         </div>
                       `;
@@ -365,45 +419,18 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
                                           : SKILL_ICON_SVG}
                                       </div>
                                       <div class="emp-card__actions">
-                                        ${installed
-                                          ? html`
-                                              <span class="market-card-status">${enabled ? "启用" : "禁用"}</span>
-                                              ${props.onToggleEnabled
-                                                ? html`<button class="market-card-icon-btn" title=${enabled ? "禁用" : "启用"}
-                                                    @click=${(e: Event) => {
-                                                      e.stopPropagation();
-                                                      void props.onToggleEnabled!(it.folder, !enabled);
-                                                    }}
-                                                  >${enabled ? icon("powerOff") : icon("power")}</button>`
-                                                : nothing}
-                                              ${props.onDelete
-                                                ? html`<button class="market-card-icon-btn danger" title="删除"
-                                                    @click=${(e: Event) => {
-                                                      e.stopPropagation();
-                                                      void props.onDelete!(it.folder);
-                                                    }}
-                                                  >${icon("trash")}</button>`
-                                                : nothing}
-                                            `
-                                          : props.onInstall
-                                            ? html`<button class="market-card-icon-btn primary" title="安装"
-                                                ?disabled=${installing}
-                                                @click=${(e: Event) => {
-                                                  e.stopPropagation();
-                                                  void props.onInstall!(it.folder, it.categoryCn);
-                                                }}
-                                              >${installing ? icon("loader2") : icon("download")}</button>`
-                                            : html`<a class="market-card-icon-btn primary" href=${`/api/v1/skills/${encodeURIComponent(it.folder)}/download`} target="_blank" rel="noopener" title="下载" @click=${(e: Event) => e.stopPropagation()}>${icon("download")}</a>`}
+                                        ${renderSkillCardActions(
+                                          props,
+                                          it.folder,
+                                          installed,
+                                          enabled,
+                                          installing,
+                                          it.categoryCn,
+                                        )}
                                       </div>
                                       <h3 class="emp-card__title">${it.name}</h3>
                                       <p class="emp-card__desc">${it.description ?? it.folder}</p>
-                                      <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
-                                        ${status
-                                          ? html`<span class="badge">${status}</span>`
-                                          : html`<span class="badge ghost">未标注</span>`}
-                                        ${tags.slice(0, 3).map((t) => html`<span class="badge ghost">${t}</span>`)}
-                                        ${os.length > 0 ? html`<span class="badge ghost">OS: ${os.join("/")}</span>` : nothing}
-                                      </div>
+                                      ${renderSkillMeta(tags, os, status, enabled)}
                                     </div>
                                   </div>
                                 `;
@@ -431,16 +458,18 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
                           const disabled = props.disabledKeys?.has(folder) ?? false;
                           const enabled = !disabled;
                           if (installed) {
-                            return html`
-                              <span class="market-card-status">${enabled ? "启用" : "禁用"}</span>
-                              ${props.onToggleEnabled ? html`<button class="market-card-icon-btn" title=${enabled ? "禁用" : "启用"} @click=${() => void props.onToggleEnabled!(folder, !enabled)}>${enabled ? icon("powerOff") : icon("power")}</button>` : nothing}
-                              ${props.onDelete ? html`<button class="market-card-icon-btn danger" title="删除" @click=${() => void props.onDelete!(folder)}>${icon("trash")}</button>` : nothing}
-                            `;
+                            return renderSkillCardActions(props, folder, true, enabled, false);
                           }
                           if (props.onInstall) {
-                            return html`<button class="market-card-icon-btn primary" title="安装" ?disabled=${props.installingFolder === folder} @click=${() => void props.onInstall!(folder)}>${props.installingFolder === folder ? icon("loader2") : icon("download")}</button>`;
+                            return renderSkillCardActions(
+                              props,
+                              folder,
+                              false,
+                              false,
+                              props.installingFolder === folder,
+                            );
                           }
-                          return html`<a class="market-card-icon-btn primary" href=${`/api/v1/skills/${encodeURIComponent(folder)}/download`} target="_blank" rel="noopener" title="下载">${icon("download")}</a>`;
+                          return renderSkillCardActions(props, folder, false, false, false);
                         })()}
                       </div>
                     </div>

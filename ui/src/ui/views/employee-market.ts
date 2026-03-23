@@ -2,7 +2,6 @@ import { html, nothing } from "lit";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import type { EmployeeDetail, EmployeeListItem } from "../controllers/remote-market.ts";
 import { resolveLogoUrl } from "../controllers/remote-market.ts";
-import { icon } from "../icons.ts";
 import { toSanitizedMarkdownHtml } from "../markdown.ts";
 
 export type EmployeeMarketProps = {
@@ -90,7 +89,7 @@ function renderCardTags(tagsRaw?: string) {
   const show = tags.slice(0, EMP_CARD_TAGS_MAX);
   const hasMore = tags.length > EMP_CARD_TAGS_MAX;
   return html`
-    <div class="emp-card__tags">
+    <div class="emp-card__tags market-card-meta">
       ${show.map((t) => html`<span class="badge ghost emp-card__tag">${t}</span>`)}
       ${hasMore ? html`<span class="emp-card__tags-more">...</span>` : nothing}
     </div>
@@ -117,6 +116,103 @@ function statusLabel(status?: string) {
   if (v === "paid") return "收费";
   if (v === "private") return "私有";
   return status ?? "";
+}
+
+function isInstalledEmployee(
+  props: EmployeeMarketProps,
+  item: EmployeeListItem | EmployeeDetail
+) {
+  const remoteId = String(item.id);
+  const isLocal = typeof item.id === "string" && remoteId.startsWith("local:");
+  return isLocal || (props.installedIds?.has(remoteId) ?? false) || (props.installedRemoteIds?.has(remoteId) ?? false);
+}
+
+function localEmployeeId(props: EmployeeMarketProps, item: EmployeeListItem | EmployeeDetail) {
+  const remoteId = String(item.id);
+  const isLocal = typeof item.id === "string" && remoteId.startsWith("local:");
+  return isLocal ? remoteId.replace(/^local:/, "") : (props.remoteToLocalMap?.[remoteId] ?? "");
+}
+
+function renderEmployeeCardAction(
+  props: EmployeeMarketProps,
+  item: EmployeeListItem | EmployeeDetail
+) {
+  const installed = isInstalledEmployee(props, item);
+  const remoteId = String(item.id);
+  const installing = props.installingId === remoteId;
+  if (installed) {
+    return html`<button class="market-card-button market-card-button--installed" type="button" disabled>已获取</button>`;
+  }
+  if (props.onInstall) {
+    return html`
+      <button
+        class="market-card-button market-card-button--primary"
+        type="button"
+        ?disabled=${installing}
+        @click=${(e: Event) => {
+          e.stopPropagation();
+          void props.onInstall!(item.id, item.category);
+        }}
+      >
+        ${installing ? "获取中" : "获取"}
+      </button>
+    `;
+  }
+  return html`
+    <a
+      class="market-card-button market-card-button--primary"
+      href=${`/api/v1/employees/${item.id}/download`}
+      target="_blank"
+      rel="noopener"
+      title="下载"
+      @click=${(e: Event) => e.stopPropagation()}
+    >
+      获取
+    </a>
+  `;
+}
+
+function renderEmployeeDetailActions(props: EmployeeMarketProps, detail: EmployeeDetail) {
+  const installed = isInstalledEmployee(props, detail);
+  const localId = localEmployeeId(props, detail);
+  if (installed) {
+    return html`
+      <div class="market-card-actions">
+        ${props.onOpenEmployee && localId
+          ? html`<button class="market-card-button market-card-button--ghost" type="button" @click=${() => props.onOpenEmployee!(localId)}>会话</button>`
+          : nothing}
+        ${props.onEdit && localId
+          ? html`<button class="market-card-button market-card-button--ghost" type="button" @click=${() => props.onEdit!(localId)}>编辑</button>`
+          : nothing}
+        ${props.onDelete && localId
+          ? html`<button class="market-card-button market-card-button--danger" type="button" @click=${() => void props.onDelete!(localId)}>删除</button>`
+          : nothing}
+      </div>
+    `;
+  }
+  if (props.onInstall) {
+    return html`
+      <button
+        class="market-card-button market-card-button--primary"
+        type="button"
+        ?disabled=${props.installingId === String(detail.id)}
+        @click=${() => void props.onInstall!(detail.id, detail.category)}
+      >
+        ${props.installingId === String(detail.id) ? "获取中" : "获取"}
+      </button>
+    `;
+  }
+  return html`
+    <a
+      class="market-card-button market-card-button--primary"
+      href=${`/api/v1/employees/${detail.id}/download`}
+      target="_blank"
+      rel="noopener"
+      title="下载"
+    >
+      获取
+    </a>
+  `;
 }
 
 export function renderEmployeeMarket(props: EmployeeMarketProps) {
@@ -187,14 +283,7 @@ export function renderEmployeeMarket(props: EmployeeMarketProps) {
                   <div class="emp-grid emp-installed-grid">
                     ${installedItems.map((it) => {
                       const selected = props.selectedId === it.id;
-                      const isLocal = typeof it.id === "string" && String(it.id).startsWith("local:");
-                      const remoteId = String(it.id);
-                      const localId = isLocal ? remoteId.replace(/^local:/, "") : (props.remoteToLocalMap?.[remoteId] ?? "");
-                      const installed = true;
-                      const installing = props.installingId === remoteId;
                       const logoUrl = resolveLogoUrl(it.logo_url);
-                      const canOpenChat = installed && localId && props.onOpenEmployee;
-                      const canEdit = installed && localId && props.onEdit;
                       return html`
                         <div class="emp-card-wrap ${selected ? "active" : ""}">
                           <div class="emp-card emp-card-btn" @click=${() => props.onSelect(it.id)}>
@@ -207,10 +296,7 @@ export function renderEmployeeMarket(props: EmployeeMarketProps) {
                               `}
                             </div>
                             <div class="emp-card__actions">
-                              ${canOpenChat ? html`<button class="market-card-icon-btn" title="会话" @click=${(e: Event) => { e.stopPropagation(); props.onOpenEmployee!(localId); }}>${icon("messageSquare")}</button>` : nothing}
-                              ${canEdit ? html`<button class="market-card-icon-btn" title="修改" @click=${(e: Event) => { e.stopPropagation(); props.onEdit!(localId); }}>${icon("edit")}</button>` : nothing}
-                              ${props.onDelete && localId ? html`<button class="market-card-icon-btn danger" title="删除" @click=${(e: Event) => { e.stopPropagation(); void props.onDelete!(localId); }}>${icon("trash")}</button>` : nothing}
-                              ${!installed && props.onInstall ? html`<button class="market-card-icon-btn primary" title="安装" ?disabled=${installing} @click=${(e: Event) => { e.stopPropagation(); void props.onInstall!(it.id, it.category); }}>${installing ? icon("loader2") : icon("download")}</button>` : nothing}
+                              ${renderEmployeeCardAction(props, it)}
                             </div>
                             <h3 class="emp-card__title">${it.name}</h3>
                             <p class="emp-card__desc">${it.description ?? "暂无描述"}</p>
@@ -239,19 +325,7 @@ export function renderEmployeeMarket(props: EmployeeMarketProps) {
                                   <div class="emp-grid">
                                     ${section.items.map((it) => {
                                       const selected = props.selectedId === it.id;
-                                      const isLocal = typeof it.id === "string" && String(it.id).startsWith("local:");
-                                      const remoteId = String(it.id);
-                                      const localId = isLocal
-                                        ? remoteId.replace(/^local:/, "")
-                                        : (props.remoteToLocalMap?.[remoteId] ?? "");
-                                      const installed =
-                                        isLocal ||
-                                        (props.installedIds?.has(remoteId) ?? false) ||
-                                        (props.installedRemoteIds?.has(remoteId) ?? false);
-                                      const installing = props.installingId === remoteId;
                                       const logoUrl = resolveLogoUrl(it.logo_url);
-                                      const canOpenChat = installed && localId && props.onOpenEmployee;
-                                      const canEdit = installed && localId && props.onEdit;
                                       return html`
                                         <div class="emp-card-wrap ${selected ? "active" : ""}">
                                           <div class="emp-card emp-card-btn" @click=${() => props.onSelect(it.id)}>
@@ -266,57 +340,7 @@ export function renderEmployeeMarket(props: EmployeeMarketProps) {
                                                 `}
                                             </div>
                                             <div class="emp-card__actions">
-                                              ${installed
-                                                ? html`
-                                                    ${canOpenChat
-                                                      ? html`<button
-                                                          class="market-card-icon-btn"
-                                                          title="会话"
-                                                          @click=${(e: Event) => {
-                                                            e.stopPropagation();
-                                                            props.onOpenEmployee!(localId);
-                                                          }}
-                                                        >${icon("messageSquare")}</button>`
-                                                      : nothing}
-                                                    ${canEdit
-                                                      ? html`<button
-                                                          class="market-card-icon-btn"
-                                                          title="修改"
-                                                          @click=${(e: Event) => {
-                                                            e.stopPropagation();
-                                                            props.onEdit!(localId);
-                                                          }}
-                                                        >${icon("edit")}</button>`
-                                                      : nothing}
-                                                    ${props.onDelete && localId
-                                                      ? html`<button
-                                                          class="market-card-icon-btn danger"
-                                                          title="删除"
-                                                          @click=${(e: Event) => {
-                                                            e.stopPropagation();
-                                                            void props.onDelete!(localId);
-                                                          }}
-                                                        >${icon("trash")}</button>`
-                                                      : nothing}
-                                                  `
-                                                : props.onInstall
-                                                  ? html`<button
-                                                      class="market-card-icon-btn primary"
-                                                      title="安装"
-                                                      ?disabled=${installing}
-                                                      @click=${(e: Event) => {
-                                                        e.stopPropagation();
-                                                        void props.onInstall!(it.id, it.category);
-                                                      }}
-                                                    >${installing ? icon("loader2") : icon("download")}</button>`
-                                                  : html`<a
-                                                      class="market-card-icon-btn primary"
-                                                      href=${`/api/v1/employees/${it.id}/download`}
-                                                      target="_blank"
-                                                      rel="noopener"
-                                                      title="下载"
-                                                      @click=${(e: Event) => e.stopPropagation()}
-                                                    >${icon("download")}</a>`}
+                                              ${renderEmployeeCardAction(props, it)}
                                             </div>
                                             <h3 class="emp-card__title">${it.name}</h3>
                                             <p class="emp-card__desc">${it.description ?? "暂无描述"}</p>
@@ -360,43 +384,7 @@ export function renderEmployeeMarket(props: EmployeeMarketProps) {
                       </div>
                       <article class="emp-detail-summary">${props.selectedDetail.description ?? ""}</article>
                       <div class="emp-detail-meta-row" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
-                        ${(() => {
-                          const sid = props.selectedDetail.id;
-                          const sidStr = String(sid);
-                          const isLocal = typeof sid === "string" && sidStr.startsWith("local:");
-                          const localId = isLocal
-                            ? sidStr.replace(/^local:/, "")
-                            : (props.remoteToLocalMap?.[sidStr] ?? "");
-                          const installed = isLocal || (props.installedRemoteIds?.has(sidStr) ?? false);
-                          const canOpenChat = installed && localId && props.onOpenEmployee;
-                          const canEdit = installed && localId && props.onEdit;
-                          if (installed) {
-                            return html`
-                              ${canOpenChat
-                                ? html`<button class="market-card-icon-btn" title="会话"
-                                    @click=${() => void props.onOpenEmployee!(localId)}
-                                  >${icon("messageSquare")}</button>`
-                                : nothing}
-                              ${canEdit
-                                ? html`<button class="market-card-icon-btn" title="修改"
-                                    @click=${() => void props.onEdit!(localId)}
-                                  >${icon("edit")}</button>`
-                                : nothing}
-                              ${props.onDelete && localId
-                                ? html`<button class="market-card-icon-btn danger" title="删除"
-                                    @click=${() => void props.onDelete!(localId)}
-                                  >${icon("trash")}</button>`
-                                : nothing}
-                            `;
-                          }
-                          if (props.onInstall) {
-                            return html`<button class="market-card-icon-btn primary" title="安装"
-                              ?disabled=${props.installingId === sidStr}
-                              @click=${() => void props.onInstall!(sid, props.selectedDetail?.category)}
-                            >${props.installingId === sidStr ? icon("loader2") : icon("download")}</button>`;
-                          }
-                          return html`<a class="market-card-icon-btn primary" href=${`/api/v1/employees/${sid}/download`} target="_blank" rel="noopener" title="下载">${icon("download")}</a>`;
-                        })()}
+                        ${renderEmployeeDetailActions(props, props.selectedDetail)}
                       </div>
                     </div>
                     <div class="emp-detail-meta-right" style="display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; flex-shrink: 0;">

@@ -79,7 +79,7 @@ export function renderTutorials(props: TutorialsProps) {
         <div class="emp-content">
           <div class="emp-main tutorials-video-context">
             <div class="tutorials-video-header">
-              <button class="btn btn--sm" type="button" @click=${props.onPlayingClose}>← 返回教程</button>
+              <button class="btn btn--sm" type="button" @click=${props.onPlayingClose}>返回教程</button>
             </div>
             <div class="tutorials-video-wrap">
               <iframe
@@ -111,7 +111,7 @@ export function renderTutorials(props: TutorialsProps) {
         <div class="emp-content">
           <div class="emp-main">
             <div class="emp-toolbar">
-              <h2 class="emp-toolbar__title">${activeCategory ? activeCategory.name : "OpenOcta 教程"}</h2>
+              <h2 class="emp-toolbar__title">OpenOcta 教程</h2>
               <div class="emp-toolbar__actions">
                 <div class="emp-search">
                   <input

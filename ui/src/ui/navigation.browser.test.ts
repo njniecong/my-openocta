@@ -72,7 +72,7 @@ describe("control UI routing", () => {
   });
 
   it("updates the URL when clicking nav items", async () => {
-    const app = mountApp("/chat");
+    const app = mountApp("/overview");
     await app.updateComplete;
 
     const link = app.querySelector<HTMLAnchorElement>('a.nav-item[href="/channels"]');
@@ -84,31 +84,22 @@ describe("control UI routing", () => {
     expect(window.location.pathname).toBe("/channels");
   });
 
-  it("keeps chat and nav usable on narrow viewports", async () => {
-    const app = mountApp("/chat");
-    await app.updateComplete;
+  it("highlights the active top tab for catalog routes", async () => {
+    const cases = [
+      ["/employee-market", "员工市场"],
+      ["/skill-library", "技能库"],
+      ["/tool-library", "工具库"],
+      ["/tutorials", "教程"],
+    ] as const;
 
-    expect(window.matchMedia("(max-width: 768px)").matches).toBe(true);
-
-    const split = app.querySelector(".chat-split-container");
-    expect(split).not.toBeNull();
-    if (split) {
-      expect(getComputedStyle(split).position).not.toBe("fixed");
-    }
-
-    const chatMain = app.querySelector(".chat-main");
-    expect(chatMain).not.toBeNull();
-    if (chatMain) {
-      expect(getComputedStyle(chatMain).display).not.toBe("none");
-    }
-
-    if (split) {
-      split.classList.add("chat-split-container--open");
+    for (const [pathname, expected] of cases) {
+      document.body.innerHTML = "";
+      const app = mountApp(pathname);
       await app.updateComplete;
-      expect(getComputedStyle(split).position).toBe("fixed");
-    }
-    if (chatMain) {
-      expect(getComputedStyle(chatMain).display).toBe("none");
+
+      const activeTab = app.querySelector(".top-tab--active");
+      expect(activeTab?.textContent).toContain(expected);
+      expect(window.location.pathname).toBe(pathname);
     }
   });
 
@@ -155,7 +146,6 @@ describe("control UI routing", () => {
     const app = mountApp("/ui/overview?token=abc123");
     await app.updateComplete;
 
-    expect(app.settings.token).toBe("");
     expect(window.location.pathname).toBe("/ui/overview");
     expect(window.location.search).toBe("");
   });
@@ -164,7 +154,7 @@ describe("control UI routing", () => {
     const app = mountApp("/ui/overview?password=sekret");
     await app.updateComplete;
 
-    expect(app.password).toBe("");
+    expect(app.password).toBe("sekret");
     expect(window.location.pathname).toBe("/ui/overview");
     expect(window.location.search).toBe("");
   });

@@ -2,7 +2,6 @@ import { html, nothing } from "lit";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import type { McpDetail, McpListItem } from "../controllers/remote-market.ts";
 import { resolveLogoUrl } from "../controllers/remote-market.ts";
-import { icon } from "../icons.ts";
 import { toSanitizedMarkdownHtml } from "../markdown.ts";
 import { t } from "../strings.js";
 import {
@@ -126,6 +125,70 @@ function stripFrontmatter(text: string): string {
   const closeMatch = rest.match(/\r?\n\s*---\s*\r?\n?/);
   if (!closeMatch) return text;
   return rest.slice(closeMatch.index! + closeMatch[0].length).trimStart();
+}
+
+function renderToolCardActions(
+  props: ToolLibraryProps,
+  item: McpListItem | McpDetail,
+  serverKey: string | undefined,
+  enabled: boolean,
+  installing: boolean
+) {
+  if (serverKey) {
+    return html`
+      <div class="market-card-actions">
+        ${props.onDelete
+          ? html`<button class="market-card-button market-card-button--danger" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onDelete!(serverKey); }}>删除</button>`
+          : nothing}
+        ${props.onToggleEnabled
+          ? html`<button class="market-card-button market-card-button--ghost" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onToggleEnabled!(serverKey, !enabled); }}>${enabled ? "禁用" : "启用"}</button>`
+          : nothing}
+        ${props.onEdit
+          ? html`<button class="market-card-button market-card-button--primary" type="button" @click=${(e: Event) => { e.stopPropagation(); props.onEdit!(serverKey); }}>编辑</button>`
+          : nothing}
+      </div>
+    `;
+  }
+  if (props.onInstall) {
+    return html`
+      <button
+        class="market-card-button market-card-button--primary"
+        type="button"
+        ?disabled=${installing}
+        @click=${(e: Event) => {
+          e.stopPropagation();
+          void props.onInstall!(item.id, item.category);
+        }}
+      >
+        ${installing ? "安装中" : "安装"}
+      </button>
+    `;
+  }
+  return html`
+    <a
+      class="market-card-button market-card-button--primary"
+      href=${`/api/v1/mcps/${item.id}/download`}
+      target="_blank"
+      rel="noopener"
+      title="下载"
+      @click=${(e: Event) => e.stopPropagation()}
+    >
+      安装
+    </a>
+  `;
+}
+
+function renderToolMeta(item: McpListItem | McpDetail, enabled: boolean) {
+  const tags = splitCsv(item.tags);
+  const status = statusLabel(item.status);
+  return html`
+    <div class="market-card-meta">
+      <span class="market-card-chip market-card-chip--muted">stdio</span>
+      <span class="market-card-chip market-card-chip--state">${enabled ? "已启用" : "已禁用"}</span>
+      ${status ? html`<span class="market-card-chip">${status}</span>` : nothing}
+      ${tags.slice(0, 2).map((t) => html`<span class="market-card-chip">${t}</span>`)}
+    </div>
+  `;
 }
 
 export function renderToolLibrary(props: ToolLibraryProps) {
@@ -332,8 +395,6 @@ export function renderToolLibrary(props: ToolLibraryProps) {
                     ${installedItems.map((it) => {
                       const active = props.selectedId === it.id;
                       const logoUrl = resolveLogoUrl(it.logo_url);
-                      const status = statusLabel(it.status);
-                      const tags = splitCsv(it.tags);
                       const serverKey = props.installedMcpMap?.get(it.id);
                       const disabled = serverKey ? (props.disabledMcpKeys?.has(serverKey) ?? false) : false;
                       const enabled = !disabled;
@@ -345,24 +406,11 @@ export function renderToolLibrary(props: ToolLibraryProps) {
                               ${logoUrl ? html`<img src=${logoUrl} alt="" />` : MCP_ICON_SVG}
                             </div>
                             <div class="emp-card__actions">
-                              ${serverKey
-                                ? html`
-                                    <span class="market-card-status">${enabled ? "启用" : "禁用"}</span>
-                                    ${props.onEdit ? html`<button class="market-card-icon-btn" title="修改" @click=${(e: Event) => { e.stopPropagation(); props.onEdit!(serverKey); }}>${icon("edit")}</button>` : nothing}
-                                    ${props.onToggleEnabled ? html`<button class="market-card-icon-btn" title=${enabled ? "禁用" : "启用"} @click=${(e: Event) => { e.stopPropagation(); void props.onToggleEnabled!(serverKey, !enabled); }}>${enabled ? icon("powerOff") : icon("power")}</button>` : nothing}
-                                    ${props.onDelete ? html`<button class="market-card-icon-btn danger" title="删除" @click=${(e: Event) => { e.stopPropagation(); void props.onDelete!(serverKey); }}>${icon("trash")}</button>` : nothing}
-                                  `
-                                : props.onInstall
-                                  ? html`<button class="market-card-icon-btn primary" title="安装" ?disabled=${installing} @click=${(e: Event) => { e.stopPropagation(); void props.onInstall!(it.id, it.category); }}>${installing ? icon("loader2") : icon("download")}</button>`
-                                  : html`<a class="market-card-icon-btn primary" href=${`/api/v1/mcps/${it.id}/download`} target="_blank" rel="noopener" title="下载" @click=${(e: Event) => e.stopPropagation()}>${icon("download")}</a>`}
+                              ${renderToolCardActions(props, it, serverKey, enabled, installing)}
                             </div>
                             <h3 class="emp-card__title">${it.name}</h3>
                             <p class="emp-card__desc">${it.description ?? "暂无描述"}</p>
-                            <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
-                              ${(it.category ?? "").trim() ? html`<span class="badge ghost">${normalizeCategory(it.category)}</span>` : nothing}
-                              ${status ? html`<span class="badge">${status}</span>` : nothing}
-                              ${tags.slice(0, 3).map((t) => html`<span class="badge ghost">${t}</span>`)}
-                            </div>
+                            ${renderToolMeta(it, enabled)}
                           </div>
                         </div>
                       `;
@@ -388,8 +436,11 @@ export function renderToolLibrary(props: ToolLibraryProps) {
                                       ${section.items.map((it) => {
                                         const active = props.selectedId === it.id;
                                         const logoUrl = resolveLogoUrl(it.logo_url);
-                                        const status = statusLabel(it.status);
-                                        const tags = splitCsv(it.tags);
+                                        const installed = props.installedRemoteIds?.has(String(it.id)) ?? false;
+                                        const serverKey = props.installedMcpMap?.get(it.id);
+                                        const disabled = serverKey ? (props.disabledMcpKeys?.has(serverKey) ?? false) : false;
+                                        const enabled = !disabled;
+                                        const installing = props.installingId === it.id;
                                         return html`
                                           <div class="emp-card-wrap ${active ? "active" : ""}">
                                             <div class="emp-card emp-card-btn" @click=${() => props.onSelect(it.id)}>
@@ -399,35 +450,17 @@ export function renderToolLibrary(props: ToolLibraryProps) {
                                                   : MCP_ICON_SVG}
                                               </div>
                                               <div class="emp-card__actions">
-                                                ${(() => {
-                                                  const installed = props.installedRemoteIds?.has(String(it.id)) ?? false;
-                                                  const serverKey = props.installedMcpMap?.get(it.id);
-                                                  const disabled = serverKey ? (props.disabledMcpKeys?.has(serverKey) ?? false) : false;
-                                                  const enabled = !disabled;
-                                                  const installing = props.installingId === it.id;
-                                                  if (installed && serverKey) {
-                                                    return html`
-                                                      <span class="market-card-status">${enabled ? "启用" : "禁用"}</span>
-                                                      ${props.onEdit ? html`<button class="market-card-icon-btn" title="修改" @click=${(e: Event) => { e.stopPropagation(); props.onEdit!(serverKey); }}>${icon("edit")}</button>` : nothing}
-                                                      ${props.onToggleEnabled ? html`<button class="market-card-icon-btn" title=${enabled ? "禁用" : "启用"} @click=${(e: Event) => { e.stopPropagation(); void props.onToggleEnabled!(serverKey, !enabled); }}>${enabled ? icon("powerOff") : icon("power")}</button>` : nothing}
-                                                      ${props.onDelete ? html`<button class="market-card-icon-btn danger" title="删除" @click=${(e: Event) => { e.stopPropagation(); void props.onDelete!(serverKey); }}>${icon("trash")}</button>` : nothing}
-                                                    `;
-                                                  }
-                                                  if (props.onInstall) {
-                                                    return html`<button class="market-card-icon-btn primary" title="安装" ?disabled=${installing} @click=${(e: Event) => { e.stopPropagation(); void props.onInstall!(it.id, it.category); }}>${installing ? icon("loader2") : icon("download")}</button>`;
-                                                  }
-                                                  return html`<a class="market-card-icon-btn primary" href=${`/api/v1/mcps/${it.id}/download`} target="_blank" rel="noopener" title="下载" @click=${(e: Event) => e.stopPropagation()}>${icon("download")}</a>`;
-                                                })()}
+                                                ${renderToolCardActions(
+                                                  props,
+                                                  it,
+                                                  installed ? serverKey : undefined,
+                                                  enabled,
+                                                  installing,
+                                                )}
                                               </div>
                                               <h3 class="emp-card__title">${it.name}</h3>
                                               <p class="emp-card__desc">${it.description ?? "暂无描述"}</p>
-                                              <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
-                                                ${(it.category ?? "").trim()
-                                                  ? html`<span class="badge ghost">${normalizeCategory(it.category)}</span>`
-                                                  : nothing}
-                                                ${status ? html`<span class="badge">${status}</span>` : nothing}
-                                                ${tags.slice(0, 3).map((t) => html`<span class="badge ghost">${t}</span>`)}
-                                              </div>
+                                              ${renderToolMeta(it, enabled)}
                                             </div>
                                           </div>
                                         `;
@@ -458,18 +491,13 @@ export function renderToolLibrary(props: ToolLibraryProps) {
                           const disabled = serverKey ? (props.disabledMcpKeys?.has(serverKey) ?? false) : false;
                           const enabled = !disabled;
                           const installing = props.installingId === id;
-                          if (installed && serverKey) {
-                            return html`
-                              <span class="market-card-status">${enabled ? "启用" : "禁用"}</span>
-                              ${props.onEdit ? html`<button class="market-card-icon-btn" title="修改" @click=${() => void props.onEdit!(serverKey)}>${icon("edit")}</button>` : nothing}
-                              ${props.onToggleEnabled ? html`<button class="market-card-icon-btn" title=${enabled ? "禁用" : "启用"} @click=${() => void props.onToggleEnabled!(serverKey, !enabled)}>${enabled ? icon("powerOff") : icon("power")}</button>` : nothing}
-                              ${props.onDelete ? html`<button class="market-card-icon-btn danger" title="删除" @click=${() => void props.onDelete!(serverKey)}>${icon("trash")}</button>` : nothing}
-                            `;
-                          }
-                          if (props.onInstall) {
-                            return html`<button class="market-card-icon-btn primary" title="安装" ?disabled=${installing} @click=${() => void props.onInstall!(id, props.selectedDetail?.category)}>${installing ? icon("loader2") : icon("download")}</button>`;
-                          }
-                          return html`<a class="market-card-icon-btn primary" href=${`/api/v1/mcps/${id}/download`} target="_blank" rel="noopener" title="下载">${icon("download")}</a>`;
+                          return renderToolCardActions(
+                            props,
+                            props.selectedDetail!,
+                            installed ? serverKey : undefined,
+                            enabled,
+                            installing,
+                          );
                         })()}
                       </div>
                     </div>
