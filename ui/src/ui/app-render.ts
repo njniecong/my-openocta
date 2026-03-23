@@ -95,7 +95,6 @@ import { renderOverview } from "./views/overview.ts";
 import { renderSessions } from "./views/sessions.ts";
 import { computeSkillLibraryCategories, renderSkillLibrary } from "./views/skill-library.ts";
 import { computeToolLibraryCategories, renderToolLibrary } from "./views/tool-library.ts";
-import { getTutorialIcon, accentVars } from "./tutorial-icons.ts";
 import { renderTutorials, toBilibiliEmbedUrl } from "./views/tutorials.ts";
 import { requestDesktopUninstall } from "./controllers/desktop-uninstall.ts";
 import { openExternalUrl } from "./open-external-url.ts";
@@ -245,7 +244,7 @@ export function renderApp(state: AppViewState) {
     state.tab === "llmTrace" ||
     state.tab === "aboutUs";
   return html`
-    <div class="shell ${isChat ? "shell--chat" : ""} ${isCatalogArea ? "shell--catalog" : ""} ${chatFocus ? "shell--chat-focus" : ""} ${state.settings.navCollapsed ? "shell--nav-collapsed" : ""} ${state.onboarding ? "shell--onboarding" : ""}">
+    <div class="shell ${isChat ? "shell--chat" : ""} ${isCatalogArea ? "shell--catalog" : ""} ${state.tab === "tutorials" ? "shell--tutorials" : ""} ${chatFocus ? "shell--chat-focus" : ""} ${state.settings.navCollapsed ? "shell--nav-collapsed" : ""} ${state.onboarding ? "shell--onboarding" : ""}">
       <header class="topbar">
         <div class="topbar-left">
           <div class="brand">
@@ -354,7 +353,9 @@ export function renderApp(state: AppViewState) {
           </div>
         </div>
       </header>
-      <aside class="nav ${isCatalogArea ? "nav--catalog" : ""} ${state.settings.navCollapsed ? "nav--collapsed" : ""}">
+      ${state.tab === "tutorials"
+        ? nothing
+        : html`<aside class="nav ${isCatalogArea ? "nav--catalog" : ""} ${state.settings.navCollapsed ? "nav--collapsed" : ""}">
         ${
           state.tab === "message"
             ? html`
@@ -644,57 +645,11 @@ export function renderApp(state: AppViewState) {
                         `;
                       })()
                     : state.tab === "tutorials"
-                      ? (() => {
-                          const orderedCategories = [...(state.tutorialCategories ?? [])].sort(
-                            (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name, "zh-Hans-CN"),
-                          );
-                          const activeId = state.tutorialsSelectedCategoryId;
-                          return html`
-                            <div class="nav-group">
-                              <div class="nav-group__items">
-                                <div class="emp-categories">
-                                ${orderedCategories.length === 0
-                                  ? html`<button class="emp-cat" disabled>
-                                      <span class="emp-cat__name">暂无分类</span>
-                                      <span class="emp-cat__count">0</span>
-                                    </button>`
-                                  : orderedCategories.map((cat, catIdx) => {
-                                      const active = activeId === cat.id;
-                                      const count = cat.courses?.length ?? 0;
-                                      const iconSvg = getTutorialIcon(cat.icon_class);
-                                      const iconText = (cat.name ?? "").trim().slice(0, 1) || "教";
-                                      return html`
-                                        <button
-                                          class="emp-cat emp-cat--tutorial ${active ? "active" : ""}"
-                                          type="button"
-                                          style=${accentVars(cat.accent, catIdx)}
-                                          ?disabled=${state.tutorialsLoading}
-                                          @click=${() => (state.tutorialsSelectedCategoryId = cat.id)}
-                                        >
-                                          <span class="emp-cat__name" style="display:flex; align-items:center; gap: 10px; min-width: 0;">
-                                            <span
-                                              class="emp-cat__icon-wrap"
-                                              aria-hidden="true"
-                                            >
-                                              ${iconSvg
-                                                ? html`<span class="emp-cat__icon-svg">${iconSvg}</span>`
-                                                : iconText}
-                                            </span>
-                                            <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${cat.name}</span>
-                                          </span>
-                                          <span class="emp-cat__count">${count}</span>
-                                        </button>
-                                      `;
-                                    })}
-                                </div>
-                              </div>
-                            </div>
-                          `;
-                        })()
+                      ? html`<div class="nav-empty"></div>`
                       : html`<div class="nav-empty"></div>`
         }
-      </aside>
-      <main class="content ${isChat ? "content--chat" : ""} ${isCatalogArea ? "content--catalog" : ""} ${state.tab === "llmTrace" && state.llmTraceViewingSessionId != null ? "content--llm-trace-detail" : ""}">
+      </aside>`}
+      <main class="content ${isChat ? "content--chat" : ""} ${isCatalogArea ? "content--catalog" : ""} ${state.tab === "tutorials" ? "content--tutorials" : ""} ${state.tab === "llmTrace" && state.llmTraceViewingSessionId != null ? "content--llm-trace-detail" : ""}">
         ${isCatalogArea
           ? nothing
           : html`
