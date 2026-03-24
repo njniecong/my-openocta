@@ -60,7 +60,7 @@ function employeeProps(overrides: Partial<EmployeeMarketProps> = {}): EmployeeMa
 function skillItems(): SkillListItem[] {
   return [
     { folder: "alicloud-ops", name: "alicloud-ops", description: "阿里云巡检", categoryCn: "运维自动化", tags: "eligible,ecs", os: "linux", status: "open" },
-    { folder: "elastic-ops", name: "ElasticSearchOps", description: "ES 运维", categoryCn: "安全合规", tags: "eligible,es", os: "linux", status: "open" },
+    { folder: "elastic-ops", name: "ElasticSearchOps", description: "ES 运维", categoryCn: "安全合规", tags: "eligible,es", os: "linux" },
   ];
 }
 
@@ -102,7 +102,7 @@ function skillProps(overrides: Partial<SkillLibraryProps> = {}): SkillLibraryPro
 
 function toolItems(): McpListItem[] {
   return [
-    { id: 1, name: "Alicloud-mcp", description: "阿里云工具", category: "架构与开发", tags: "cloud,deploy", status: "open" },
+    { id: 1, name: "Alicloud-mcp", description: "阿里云工具", category: "架构与开发", tags: "cloud,deploy,ops", status: "open" },
     { id: 2, name: "Prometheus-mcp", description: "监控工具", category: "运维自动化", tags: "monitor,ops", status: "open" },
   ];
 }
@@ -177,6 +177,63 @@ describe("catalog pages", () => {
     expect(container.textContent).toContain("运维自动化");
     expect(container.textContent).toContain("Zabbix专家");
     expect(container.textContent).not.toContain("Prometheus专家");
+    expect(container.textContent).toContain("安装");
+  });
+
+  it("places page actions at the top-right and searches installed employee items", () => {
+    const container = document.createElement("div");
+    renderIntoContainer(
+      renderEmployeeMarket(
+        employeeProps({
+          query: "prometheus",
+          items: [
+            { id: "local:test", name: "Prometheus专家", description: "监控专家", category: "安全合规" },
+            { id: 2, name: "Zabbix专家", description: "运维自动化", category: "运维自动化" },
+          ],
+          installedRemoteIds: new Set(["local:test"]),
+        }),
+      ),
+      container,
+    );
+
+    expect(container.querySelector(".emp-main > .emp-toolbar__actions")).not.toBeNull();
+    expect(container.textContent).toContain("已安装 (1)");
+    expect(container.textContent).toContain("Prometheus专家");
+    expect(container.textContent).not.toContain("Zabbix专家");
+  });
+
+  it("renders installed employee card actions", () => {
+    const container = document.createElement("div");
+    const onOpenEmployee = vi.fn();
+    const onEdit = vi.fn();
+    const onDelete = vi.fn();
+
+    renderIntoContainer(
+      renderEmployeeMarket(
+        employeeProps({
+          items: [{ id: "local:test", name: "Prometheus专家", description: "监控专家", category: "安全合规" }],
+          installedRemoteIds: new Set(["local:test"]),
+          onOpenEmployee,
+          onEdit,
+          onDelete: async (id) => {
+            onDelete(id);
+          },
+        }),
+      ),
+      container,
+    );
+
+    const firstCardActions = container.querySelector(".emp-card-wrap .emp-card__actions");
+    const cardButtons = Array.from(firstCardActions?.querySelectorAll("button") ?? []);
+    const labels = cardButtons.map((button) => button.textContent?.trim());
+    expect(labels).toEqual(["删除", "会话", "编辑"]);
+    expect(cardButtons.find((button) => button.textContent?.trim() === "会话")?.className).toBe("market-card-button");
+    expect(cardButtons.find((button) => button.textContent?.trim() === "编辑")?.className).toBe("market-card-button market-card-button--primary");
+    expect(cardButtons.find((button) => button.textContent?.trim() === "删除")?.className).toBe("market-card-button");
+
+    const talkButton = cardButtons.find((button) => button.textContent?.trim() === "会话");
+    talkButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(onOpenEmployee).toHaveBeenCalledWith("test");
   });
 
   it("renders installed skill actions and grouped title", () => {
@@ -195,10 +252,56 @@ describe("catalog pages", () => {
     expect(container.textContent).toContain("运维自动化");
     expect(container.textContent).toContain("删除");
     expect(container.textContent).toContain("启用");
-    expect(container.textContent).toContain("已禁用");
+    expect(container.textContent).toContain("开放");
+    expect(container.textContent).toContain("OS: linux");
+    expect(container.textContent).toContain("eligible");
+    expect(container.textContent).not.toContain("已禁用");
+    expect(container.querySelector(".market-card-status")).toBeNull();
+    const actionButtons = Array.from(container.querySelectorAll(".emp-card__actions button"));
+    expect(actionButtons.find((button) => button.textContent?.trim() === "删除")?.className).toBe("market-card-button");
+    expect(actionButtons.find((button) => button.textContent?.trim() === "启用")?.className).toBe("market-card-button");
 
     const counts = computeSkillLibraryCategories(skillItems(), "ali", "__all__");
     expect(counts.counts.get("__all__")).toBe(1);
+  });
+
+  it("searches installed skills as well", () => {
+    const container = document.createElement("div");
+    renderIntoContainer(
+      renderSkillLibrary(
+        skillProps({
+          query: "阿里云巡检",
+          installedKeys: new Set(["alicloud-ops"]),
+        }),
+      ),
+      container,
+    );
+
+    expect(container.querySelector(".emp-main > .emp-toolbar__actions")).not.toBeNull();
+    expect(container.textContent).toContain("已安装 (1)");
+    expect(container.textContent).toContain("阿里云巡检");
+  });
+
+  it("renders skill meta with main-compatible fallback tags", () => {
+    const container = document.createElement("div");
+    renderIntoContainer(
+      renderSkillLibrary(
+        skillProps({
+          items: [
+            { folder: "no-status-skill", name: "NoStatusSkill", description: "无状态技能", categoryCn: "安全合规", tags: "tag1,tag2,tag3,tag4", os: "linux" },
+          ],
+        }),
+      ),
+      container,
+    );
+
+    const meta = container.querySelector(".market-card-meta");
+    expect(meta?.textContent).toContain("未标注");
+    expect(meta?.textContent).toContain("tag1");
+    expect(meta?.textContent).toContain("tag2");
+    expect(meta?.textContent).toContain("tag3");
+    expect(meta?.textContent).not.toContain("tag4");
+    expect(meta?.textContent).toContain("OS: linux");
   });
 
   it("renders installed tool actions and detail modal", () => {
@@ -226,11 +329,41 @@ describe("catalog pages", () => {
 
     expect(container.textContent).toContain("编辑");
     expect(container.textContent).toContain("删除");
-    expect(container.textContent).toContain("已启用");
+    expect(container.textContent).toContain("禁用");
+    expect(container.textContent).toContain("架构与开发");
+    expect(container.textContent).toContain("开放");
+    expect(container.textContent).toContain("cloud");
+    expect(container.textContent).toContain("deploy");
+    expect(container.textContent).toContain("ops");
+    expect(container.textContent).not.toContain("已启用");
+    expect(container.textContent).not.toContain("stdio");
+    expect(container.querySelector(".market-card-status")).toBeNull();
+    const actionButtons = Array.from(container.querySelectorAll(".emp-card__actions button"));
+    expect(actionButtons.find((button) => button.textContent?.trim() === "删除")?.className).toBe("market-card-button");
+    expect(actionButtons.find((button) => button.textContent?.trim() === "禁用")?.className).toBe("market-card-button");
+    expect(actionButtons.find((button) => button.textContent?.trim() === "编辑")?.className).toBe("market-card-button market-card-button--primary");
     expect(container.querySelector(".emp-detail-modal")).not.toBeNull();
 
     const counts = computeToolLibraryCategories(toolItems(), "prom");
     expect(counts.counts.get("__all__")).toBe(1);
+  });
+
+  it("searches installed tools as well", () => {
+    const container = document.createElement("div");
+    renderIntoContainer(
+      renderToolLibrary(
+        toolProps({
+          query: "阿里云工具",
+          installedRemoteIds: new Set(["1"]),
+          installedMcpMap: new Map([[1, "alicloud-mcp"]]),
+        }),
+      ),
+      container,
+    );
+
+    expect(container.querySelector(".emp-main > .emp-toolbar__actions")).not.toBeNull();
+    expect(container.textContent).toContain("已安装 (1)");
+    expect(container.textContent).toContain("Alicloud-mcp");
   });
 
   it("renders employee detail actions inside modal", () => {
@@ -286,6 +419,6 @@ describe("catalog pages", () => {
     );
     expect(container.querySelector(".emp-detail-modal")).not.toBeNull();
     expect(container.querySelector("iframe")).not.toBeNull();
-    expect(container.textContent).toContain("打开原链接");
+    expect(container.textContent).toContain("在哔哩哔哩打开");
   });
 });

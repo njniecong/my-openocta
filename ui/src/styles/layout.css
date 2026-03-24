@@ -348,7 +348,6 @@
   padding: 6px 10px;
   gap: 6px;
   font-size: 12px;
-  font-weight: 500;
   height: 32px;
   box-sizing: border-box;
   border: none;
@@ -1152,77 +1151,6 @@ button.nav-item {
    Employee Market (Vue reference layout)
    =========================================== */
 
-.emp-page {
-  flex: 1;
-  min-width: 0;
-  background: var(--bg);
-}
-
-.emp-list-wrap {
-  padding: 16px 0 48px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.emp-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.emp-toolbar__title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-strong);
-  margin: 0;
-}
-
-.emp-toolbar__actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.emp-search {
-  width: 200px;
-  position: relative;
-}
-
-.emp-search__input {
-  width: 100%;
-  padding: 8px 12px 8px 36px;
-  border-radius: 4px;
-  border: 1px solid transparent;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 14px;
-}
-
-.emp-search__input:focus {
-  outline: none;
-}
-
-.emp-search__input::placeholder {
-  color: var(--muted);
-}
-
-.emp-search__icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 14px;
-  color: var(--muted);
-  pointer-events: none;
-}
-
-.emp-content {
-  display: flex;
-  gap: 20px;
-}
-
 .emp-sidebar {
   width: 200px;
   flex-shrink: 0;
@@ -1254,31 +1182,31 @@ button.nav-item {
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
-  color: #45474A;
+  color: var(--catalog-nav-item-text);
 }
 
 .emp-cat:hover:not(:disabled) {
-  color: #24BA51;
+  color: var(--catalog-nav-item-hover-text);
 }
 
 .emp-cat.active {
-  background: #F5F6F7;
-  color: #24BA51;
+  background: var(--catalog-nav-item-active-bg);
+  color: var(--catalog-nav-item-active-text);
   font-weight: 500;
 }
 
 .emp-cat__count {
   padding: 0 8px;
   border-radius: 999px;
-  background: #F5F6F7;
-  color: #777A7E;
+  background: var(--catalog-nav-count-bg);
+  color: var(--catalog-nav-count-text);
   font-size: 12px;
   transition: all 0.2s ease;
 }
 
 .emp-cat.active .emp-cat__count {
-  background: color-mix(in srgb, var(--accent) 12%, var(--bg));
-  color: var(--accent);
+  background: var(--catalog-accent);
+  color: #ffffff;
 }
 
 /* Tutorial category: icon + name on left */
@@ -1340,7 +1268,7 @@ button.nav-item {
   cursor: pointer;
   list-style: none;
   font-size: 15px;
-  color: #45474A;
+  color: var(--tutorials-category-text);
 }
 
 .tutorials-course__summary::-webkit-details-marker {
@@ -1403,7 +1331,7 @@ button.nav-item {
   padding: 6px 0;
   border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
   font-size: 18px;
-  color: #45474A;
+  color: var(--tutorials-category-text);
 }
 
 .tutorials-lesson:last-child {
@@ -1415,10 +1343,10 @@ button.nav-item {
 }
 
 .tutorials-lesson--clickable:hover {
-  color: #24BA51;
+  color: var(--catalog-accent-strong);
 }
 .tutorials-lesson--clickable:hover .tutorials-lesson__duration {
-  color: #24BA51;
+  color: var(--catalog-accent-strong);
 }
 
 .tutorials-lesson--disabled {
@@ -1444,7 +1372,7 @@ button.nav-item {
 .tutorials-lesson__duration {
   justify-self: end;
   font-variant-numeric: tabular-nums;
-  color: #777A7E;
+  color: var(--tutorials-lesson-duration);
   transition: color 0.2s ease;
 }
 
@@ -1486,7 +1414,7 @@ button.nav-item {
   left: 16px;
   z-index: 5;
   padding: 8px 14px;
-  background: rgba(0, 0, 0, 0.75);
+  background: var(--tutorials-link-overlay-bg);
   color: #00a1d6;
   border-radius: 8px;
   text-decoration: none;
@@ -1495,113 +1423,8 @@ button.nav-item {
 }
 
 .tutorials-bilibili-link:hover {
-  background: rgba(0, 0, 0, 0.9);
+  background: color-mix(in srgb, var(--tutorials-link-overlay-bg) 88%, #000000);
   color: #00b5e2;
-}
-
-.emp-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.emp-loading,
-.emp-empty {
-  padding: 60px;
-  text-align: center;
-  color: var(--muted);
-}
-
-.emp-installed-section {
-  margin-bottom: 24px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--border);
-}
-
-.emp-installed-grid {
-  /* 复用 emp-grid，可在此覆盖 */
-}
-
-.emp-sections {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.emp-section__title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-strong);
-  margin: 0 0 12px;
-}
-
-.emp-section__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 12px;
-}
-
-.emp-section__header .emp-section__title {
-  margin-bottom: 0;
-}
-
-.emp-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.emp-card-wrap {
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  transition: border-color 0.2s;
-}
-
-.emp-card-wrap.active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
-}
-
-.emp-card-btn {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 16px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: inherit;
-  font: inherit;
-  border-radius: 14px;
-}
-
-.emp-card {
-  position: relative;
-}
-
-.emp-card__icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  overflow: hidden;
-  background: var(--bg2);
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.emp-card__icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.emp-card__icon-fallback {
-  font-size: 20px;
-  color: var(--muted);
-  font-weight: 700;
 }
 
 .emp-card__get {
@@ -1623,15 +1446,6 @@ button.nav-item {
 }
 
 /* 市场卡片操作图标区 */
-.emp-card__actions {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
 .market-card-icon-btn {
   width: 32px;
   height: 32px;
@@ -1676,28 +1490,12 @@ button.nav-item {
   color: var(--danger, #dc2626);
 }
 
-.market-card-status {
-  font-size: 11px;
-  color: var(--muted);
-  margin-left: 4px;
-}
-
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
 .market-card-icon-btn .spin {
   animation: spin 0.8s linear infinite;
-}
-
-.emp-card__title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-strong);
-  margin: 0 0 6px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .emp-card__tags {
@@ -1723,18 +1521,6 @@ button.nav-item {
   font-size: 12px;
   color: var(--muted);
   flex-shrink: 0;
-}
-
-.emp-card__desc {
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--muted);
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 .emp-logo-wrap {
@@ -1893,11 +1679,14 @@ button.nav-item {
 }
 
 .emp-detail-title {
-  font-size: 28px;
-  line-height: 1.2;
-  font-weight: 700;
-  color: var(--text-strong);
   margin: 0;
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 700;
+  color: var(--detail-title-color);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .emp-detail-status {
@@ -1927,6 +1716,14 @@ button.nav-item {
   font-size: 13px;
   color: var(--muted);
   margin-right: 20px;
+}
+
+.emp-detail-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .emp-detail-readme-title {
@@ -2001,14 +1798,50 @@ button.nav-item {
   gap: 16px;
 }
 
-.emp-detail-modal__close {
+.emp-detail-modal__header .emp-detail-modal__close {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 20px;
+  height: 20px;
   padding: 0;
-  font-size: 24px;
-  line-height: 1;
+  border: 0;
+  background: transparent;
   border-radius: 8px;
+  color: var(--catalog-topbar-link);
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+  appearance: none;
+}
+
+.emp-detail-modal__header .emp-detail-modal__close::before,
+.emp-detail-modal__header .emp-detail-modal__close::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 1.5px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.emp-detail-modal__header .emp-detail-modal__close::before {
+  transform: rotate(45deg);
+}
+
+.emp-detail-modal__header .emp-detail-modal__close::after {
+  transform: rotate(-45deg);
+}
+
+.emp-detail-modal__header .emp-detail-modal__close:hover {
+  background: var(--catalog-nav-item-hover);
+  color: var(--catalog-topbar-link-active);
+}
+
+.emp-detail-modal__header .emp-detail-modal__close:focus-visible {
+  outline: 2px solid var(--brand2);
+  outline-offset: 2px;
 }
 
 /* ===========================================
@@ -2017,10 +1850,7 @@ button.nav-item {
 
 .shell--catalog {
   --shell-nav-width: 200px;
-  --catalog-accent: #24BA51;
-  --catalog-accent-strong: #24BA51;
-  --catalog-accent-soft: rgba(52, 199, 89, 0.1);
-  background: #F5F6F7;
+  background: var(--catalog-shell-bg);
 }
 
 .shell--tutorials {
@@ -2033,8 +1863,8 @@ button.nav-item {
 .topbar {
   gap: 20px;
   padding: 0 18px;
-  background: rgba(255, 255, 255, 0.96);
-  border-bottom: 1px solid #eceff2;
+  background: var(--catalog-topbar-bg);
+  border-bottom: 1px solid var(--catalog-topbar-border);
   box-shadow: none;
 }
 
@@ -2052,22 +1882,22 @@ button.nav-item {
   padding: 0 14px;
   font-size: 14px;
   font-weight: 500;
-  color: #666c73;
+  color: var(--catalog-topbar-text);
 }
 
 .top-tab:hover {
   background: transparent;
-  color: #22262b;
+  color: var(--catalog-topbar-text-active);
 }
 
 .top-tab--active {
-  color: #22262b;
+  color: var(--catalog-topbar-text-active);
 }
 
 .top-tab--active::after {
   width: 32px;
   margin-left: -16px;
-  background: #22262b;
+  background: var(--catalog-topbar-active-underline);
 }
 
 .brand-logo {
@@ -2081,7 +1911,7 @@ button.nav-item {
 
 .brand-sub {
   font-size: 10px;
-  color: #8b9198;
+  color: var(--catalog-topbar-brand-sub);
   letter-spacing: 0;
   text-transform: none;
 }
@@ -2095,10 +1925,9 @@ button.nav-item {
   height: 34px;
   padding: 0 14px;
   border-radius: 999px;
-  background: #f8fafb;
-  color: #60656c;
+  background: var(--catalog-topbar-pill-bg);
+  color: var(--catalog-topbar-pill-text);
   font-size: 13px;
-  font-weight: 600;
 }
 
 .topbar-status .pill--version {
@@ -2106,7 +1935,7 @@ button.nav-item {
 }
 
 .topbar-status .pill .mono {
-  color: #8a9097;
+  color: var(--catalog-topbar-pill-muted);
 }
 
 .topbar-status .pill .topbar-link {
@@ -2115,7 +1944,7 @@ button.nav-item {
 
 .topbar-status .pill .topbar-link:hover {
   background: transparent;
-  color: #23272d;
+  color: var(--catalog-topbar-pill-hover);
 }
 
 .topbar-link__img,
@@ -2125,7 +1954,7 @@ button.nav-item {
 
 .nav--catalog {
   padding: 20px 0 20px 12px;
-  background: #ffffff;
+  background: var(--catalog-nav-bg);
 }
 
 .nav--catalog .nav-group {
@@ -2137,13 +1966,13 @@ button.nav-item {
   padding: 0 10px;
   font-size: 12px;
   font-weight: 600;
-  color: #949aa2;
+  color: var(--catalog-nav-label);
 }
 
 .nav--catalog .nav-label:hover,
 .nav--catalog .nav-label--static:hover {
   background: transparent;
-  color: #949aa2;
+  color: var(--catalog-nav-label);
 }
 
 .nav--catalog .nav-group__items {
@@ -2169,8 +1998,8 @@ button.nav-item {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: #F5F6F7;
-  color: #777A7E;
+  background: var(--catalog-nav-count-bg);
+  color: var(--catalog-nav-count-text);
   font-size: 12px;
   line-height: 20px;
 }
@@ -2186,21 +2015,8 @@ button.nav-item {
   border-radius: 8px;
 }
 
-.content--catalog {
-  padding: 20px;
-  background: #f5f6f7;
-}
-
 .content--tutorials {
   width: 100%;
-}
-
-.content--catalog > * + * {
-  margin-top: 0;
-}
-
-.content--catalog .emp-page {
-  background: transparent;
 }
 
 .content--tutorials .tutorials-page {
@@ -2216,230 +2032,22 @@ button.nav-item {
   }
 }
 
-.content--catalog .emp-list-wrap {
-  max-width: none;
-  margin: 0;
-  padding: 0;
-}
-
-.content--catalog .emp-content {
-  gap: 24px;
-}
-
-.content--catalog .emp-main {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
-
-.content--catalog .emp-toolbar {
-  align-items: center;
-  margin-bottom: 0;
-}
-
-.content--catalog .emp-toolbar__title {
-  font-size: 18px;
-  font-weight: 800;
-  color: #1f2329;
-}
-
-.content--catalog .emp-toolbar__actions {
-  gap: 10px;
-}
-
-.content--catalog .emp-search__input {
-  height: 32px;
-  padding: 0 10px 0 30px;
-  background: #ffffff;
-  font-size: 13px;
-}
-
 .tutorials-page .emp-search__input {
   height: 28px;
   padding: 0 10px 0 30px;
-  background: #F5F6F7;
+  background: var(--catalog-search-bg);
+  color: var(--catalog-search-text);
   font-size: 13px;
 }
 
-.content--catalog .emp-search__icon {
-  left: 11px;
-  font-size: 13px;
-}
-
-.content--catalog .emp-sections {
-  gap: 40px;
-}
-
-.content--catalog .emp-section__title {
-  font-size: 24px;
-  font-weight: 500;
-  line-height: 32px;
-}
-
-.content--catalog .emp-section__header {
-  margin-bottom: 20px;
-}
-
-.content--catalog .emp-installed-section {
-  margin-bottom: 0;
-  padding-bottom: 0;
-  border-bottom: none;
-}
-
-.content--catalog .emp-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.content--catalog .emp-card-wrap {
-  border: 2px solid transparent;
-  border-radius: 6px;
-  background: #ffffff;
-  box-shadow: none;
-}
-
-.content--catalog .emp-card-wrap:hover {
-  border-color: #24BA51;
-  box-shadow: none;
-}
-
-.content--catalog .emp-card-btn {
-  min-height: 160px;
-  padding: 18px;
-  border-radius: 6px;
-}
-
-.content--catalog .emp-card__icon {
-  width: 40px;
-  height: 40px;
-  margin-bottom: 16px;
-  border-radius: 4px;
-  background: #f3f6f9;
-}
-
-.content--catalog .emp-card__actions {
-  top: 20px;
-  right: 20px;
-  gap: 8px;
-  align-items: center;
-}
-
-.content--catalog .emp-card__title {
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 22px;
-  color: #121317;
-}
-
-.content--catalog .emp-card__desc {
-  color: #45474A;
-  line-height: 1.55;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  font-size: 13px;
-  font-weight: normal;
-  line-height: 20px;
-}
-
-.content--catalog .emp-card__tags,
-.content--catalog .market-card-meta {
-  margin-top: 12px;
-}
-
-.market-card-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.market-card-button {
-  height: 28px;
-  padding: 0 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 7px;
-  border: 1px solid #dfe5ea;
-  background: #ffffff;
-  color: #4f565f;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    border-color var(--duration-fast) ease,
-    color var(--duration-fast) ease,
-    background var(--duration-fast) ease;
-}
-
-.market-card-button:hover:not(:disabled) {
-  border-color: #cbd3db;
-  color: #1f2329;
-}
-
-.market-card-button:disabled {
-  cursor: default;
-  opacity: 1;
-}
-
-.market-card-button--primary {
-  border-color: transparent;
-  background: var(--catalog-accent);
-  color: #ffffff;
-}
-
-.market-card-button--primary:hover:not(:disabled) {
-  background: var(--catalog-accent-strong);
-  color: #ffffff;
-}
-
-.market-card-button--ghost {
-  background: #f8fafb;
-}
-
-.market-card-button--installed {
-  background: #f8fafb;
-  color: #a1a8b0;
-}
-
-.market-card-button--danger:hover:not(:disabled) {
-  border-color: #f1c2c5;
-  color: #d74d57;
-  background: #fff8f8;
-}
-
-.market-card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.market-card-chip {
-  height: 28px;
-  padding: 0 8px;
-  display: inline-flex;
-  align-items: center;
-  border-radius: 4px;
-  background: #F5F6F7;
-  color: #45474A;
-  font-size: 13px;
-}
-
-.market-card-chip--state {
-  background: #fff;
-  border: 1px solid #08BE7E;
-  color: #08BE7E;
-}
-
-.market-card-chip--muted {
-  color: #777A7E;
+.tutorials-page .emp-search__input::placeholder {
+  color: var(--catalog-search-placeholder);
 }
 
 .tutorials-page {
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: var(--tutorials-board-bg);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -2450,14 +2058,33 @@ button.nav-item {
   justify-content: space-between;
   gap: 16px;
   padding: 12px 20px;
-  border-bottom: 1px solid #EEEFF1;
+  border-bottom: 1px solid var(--tutorials-board-border);
 }
 
 .tutorials-board__header .btn {
   height: 28px;
   padding: 0 12px;
-  color: #24BA51;
-  border: 1px solid #24BA51;
+  border: 1px solid var(--catalog-button-border);
+  background: var(--catalog-button-bg);
+  color: var(--catalog-button-text);
+}
+
+.tutorials-board__header .btn:hover {
+  border-color: var(--catalog-button-hover-border);
+  background: var(--catalog-button-hover-bg);
+  color: var(--catalog-button-hover-text);
+}
+
+.tutorials-board__header .btn.primary {
+  border-color: var(--catalog-accent);
+  background: var(--catalog-accent);
+  color: #ffffff;
+}
+
+.tutorials-board__header .btn.primary:hover {
+  border-color: var(--catalog-accent-strong);
+  background: var(--catalog-accent-strong);
+  color: #ffffff;
 }
 
 .tutorials-board__title-wrap {
@@ -2469,7 +2096,7 @@ button.nav-item {
   font-size: 16px;
   font-weight: 700;
   line-height: 24px;
-  color: #1f2329;
+  color: var(--tutorials-board-title);
 }
 
 .tutorials-board__body {
@@ -2495,19 +2122,19 @@ button.nav-item {
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: #45474A;
+  color: var(--tutorials-category-text);
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .tutorials-category:hover:not(:disabled) {
-  background: #F5F6F7;
+  background: var(--tutorials-category-hover-bg);
 }
 
 .tutorials-category.active {
-  background: #F5F6F7;
-  color: #121317;
+  background: var(--tutorials-category-active-bg);
+  color: var(--tutorials-category-active-text);
   font-weight: 500;
 }
 
@@ -2563,7 +2190,7 @@ button.nav-item {
 
 .tutorials-content {
   min-width: 0;
-  border-left: 1px solid #EEEFF1;
+  border-left: 1px solid var(--tutorials-content-border);
   flex: 1;
 }
 
@@ -2583,7 +2210,7 @@ button.nav-item {
 .tutorials-course {
   padding: 14px 6px;
   min-width: 0;
-  border-bottom: 1px solid #EEEFF1;
+  border-bottom: 1px solid var(--tutorials-course-border);
   &:last-child {
     border-bottom: none;
   }
@@ -2626,7 +2253,7 @@ button.nav-item {
 .tutorials-lesson__duration {
   justify-self: end;
   font-variant-numeric: tabular-nums;
-  color: #777A7E;
+  color: var(--tutorials-lesson-duration);
   transition: color 0.2s ease;
 }
 
@@ -2642,11 +2269,11 @@ button.nav-item {
 
 .tutorials-video-wrap {
   border-radius: 6px;
-  background: #ffffff;
+  background: var(--tutorials-video-bg);
 }
 
 .tutorials-bilibili-link {
-  background: rgba(18, 21, 26, 0.74);
+  background: var(--tutorials-link-overlay-bg);
   color: #ffffff;
 }
 
@@ -2681,8 +2308,19 @@ button.nav-item {
   flex-shrink: 0;
 }
 
-.tutorials-detail-modal__actions a.btn {
-  color: #45474A;
+.tutorials-detail-modal__link {
+  display: inline-flex;
+  align-items: center;
+  line-height: 20px;
+  font-size: 14px;
+  color: var(--tutorials-category-text);
+  text-decoration: none;
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
+}
+
+.tutorials-detail-modal__link:hover {
+  color: var(--catalog-nav-item-hover-text);
+  text-decoration: underline;
 }
 
 .tutorials-detail-modal__body {
@@ -2698,10 +2336,10 @@ button.nav-item {
 }
 
 .emp-detail-modal {
-  border: 1px solid #eceff2;
+  border: 1px solid var(--detail-modal-border);
   border-radius: 18px;
-  background: #ffffff;
-  box-shadow: 0 18px 50px rgba(19, 27, 35, 0.12);
+  background: var(--detail-modal-bg);
+  box-shadow: var(--detail-modal-shadow);
 }
 
 .emp-detail-modal--large {
@@ -2713,30 +2351,33 @@ button.nav-item {
 .emp-detail-modal__header {
   gap: 24px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #EEEFF1;
-}
-
-.emp-detail-title {
-  font-size: 26px;
-  font-weight: 800;
-  color: #1f2329;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
+  border-bottom: 1px solid var(--detail-modal-divider);
 }
 
 .emp-detail-summary {
-  color: #666d76;
+  color: var(--detail-summary-color);
   font-size: 14px;
   line-height: 1.7;
 }
 
 .emp-detail-status {
-  border: 1px solid #e5ebf0;
-  background: #f8fafb;
-  color: #818892;
+  border: 1px solid var(--detail-status-border);
+  background: var(--detail-status-bg);
+  color: var(--detail-status-text);
   font-size: 12px;
   font-weight: 700;
+}
+
+.emp-detail-modal .btn.primary {
+  border-color: var(--catalog-accent);
+  background: var(--catalog-accent);
+  color: #ffffff;
+}
+
+.emp-detail-modal .btn.primary:hover {
+  border-color: var(--catalog-accent-strong);
+  background: var(--catalog-accent-strong);
+  color: #ffffff;
 }
 
 .emp-detail-readme-title {

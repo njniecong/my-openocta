@@ -89,9 +89,9 @@ function renderCardTags(tagsRaw?: string) {
   const show = tags.slice(0, EMP_CARD_TAGS_MAX);
   const hasMore = tags.length > EMP_CARD_TAGS_MAX;
   return html`
-    <div class="emp-card__tags market-card-meta">
-      ${show.map((t) => html`<span class="badge ghost emp-card__tag">${t}</span>`)}
-      ${hasMore ? html`<span class="emp-card__tags-more">...</span>` : nothing}
+    <div class="market-card-meta">
+      ${show.map((t) => html`<span class="market-card-chip">${t}</span>`)}
+      ${hasMore ? html`<span class="market-card-chip market-card-chip--muted">...</span>` : nothing}
     </div>
   `;
 }
@@ -140,13 +140,65 @@ function renderEmployeeCardAction(
   const installed = isInstalledEmployee(props, item);
   const remoteId = String(item.id);
   const installing = props.installingId === remoteId;
+  const localId = localEmployeeId(props, item);
   if (installed) {
-    return html`<button class="market-card-button market-card-button--installed" type="button" disabled>已获取</button>`;
+    const hasQuickActions = Boolean(
+      (props.onOpenEmployee && localId) || (props.onEdit && localId) || (props.onDelete && localId),
+    );
+    if (!hasQuickActions) {
+      return html`<button class="market-card-button market-card-button--installed" type="button" disabled>已安装</button>`;
+    }
+    return html`
+      <div class="market-card-actions">
+        ${props.onDelete && localId
+          ? html`
+              <button
+                class="market-card-button"
+                type="button"
+                @click=${(e: Event) => {
+                  e.stopPropagation();
+                  void props.onDelete!(localId);
+                }}
+              >
+                删除
+              </button>
+            `
+          : nothing}
+        ${props.onOpenEmployee && localId
+          ? html`
+              <button
+                class="market-card-button"
+                type="button"
+                @click=${(e: Event) => {
+                  e.stopPropagation();
+                  props.onOpenEmployee!(localId);
+                }}
+              >
+                会话
+              </button>
+            `
+          : nothing}
+        ${props.onEdit && localId
+          ? html`
+              <button
+                class="market-card-button market-card-button--primary"
+                type="button"
+                @click=${(e: Event) => {
+                  e.stopPropagation();
+                  props.onEdit!(localId);
+                }}
+              >
+                编辑
+              </button>
+            `
+          : nothing}
+      </div>
+    `;
   }
   if (props.onInstall) {
     return html`
       <button
-        class="market-card-button market-card-button--primary"
+        class="market-card-button"
         type="button"
         ?disabled=${installing}
         @click=${(e: Event) => {
@@ -154,20 +206,20 @@ function renderEmployeeCardAction(
           void props.onInstall!(item.id, item.category);
         }}
       >
-        ${installing ? "获取中" : "获取"}
+        ${installing ? "安装中" : "安装"}
       </button>
     `;
   }
   return html`
     <a
-      class="market-card-button market-card-button--primary"
+      class="market-card-button"
       href=${`/api/v1/employees/${item.id}/download`}
       target="_blank"
       rel="noopener"
       title="下载"
       @click=${(e: Event) => e.stopPropagation()}
     >
-      获取
+      安装
     </a>
   `;
 }
@@ -178,14 +230,14 @@ function renderEmployeeDetailActions(props: EmployeeMarketProps, detail: Employe
   if (installed) {
     return html`
       <div class="market-card-actions">
+        ${props.onDelete && localId
+          ? html`<button class="market-card-button market-card-button--danger" type="button" @click=${() => void props.onDelete!(localId)}>删除</button>`
+          : nothing}
         ${props.onOpenEmployee && localId
           ? html`<button class="market-card-button market-card-button--ghost" type="button" @click=${() => props.onOpenEmployee!(localId)}>会话</button>`
           : nothing}
         ${props.onEdit && localId
           ? html`<button class="market-card-button market-card-button--ghost" type="button" @click=${() => props.onEdit!(localId)}>编辑</button>`
-          : nothing}
-        ${props.onDelete && localId
-          ? html`<button class="market-card-button market-card-button--danger" type="button" @click=${() => void props.onDelete!(localId)}>删除</button>`
           : nothing}
       </div>
     `;
@@ -198,7 +250,7 @@ function renderEmployeeDetailActions(props: EmployeeMarketProps, detail: Employe
         ?disabled=${props.installingId === String(detail.id)}
         @click=${() => void props.onInstall!(detail.id, detail.category)}
       >
-        ${props.installingId === String(detail.id) ? "获取中" : "获取"}
+        ${props.installingId === String(detail.id) ? "安装中" : "安装"}
       </button>
     `;
   }
@@ -210,7 +262,7 @@ function renderEmployeeDetailActions(props: EmployeeMarketProps, detail: Employe
       rel="noopener"
       title="下载"
     >
-      获取
+      安装
     </a>
   `;
 }
@@ -262,19 +314,25 @@ export function renderEmployeeMarket(props: EmployeeMarketProps) {
     </div>
   `;
 
+  const installedItems = filteredByQuery.filter((it) => {
+    const remoteId = String(it.id);
+    const isLocal = typeof it.id === "string" && remoteId.startsWith("local:");
+    return (
+      isLocal ||
+      (props.installedIds?.has(remoteId) ?? false) ||
+      (props.installedRemoteIds?.has(remoteId) ?? false)
+    );
+  });
+
   return html`
     <main class="emp-page">
       <section class="emp-list-wrap">
         <div class="emp-content">
           <div class="emp-main">
             ${props.error ? html`<div class="callout danger" style="margin-bottom: 16px;">${props.error}</div>` : nothing}
+            ${toolbarActions}
 
             ${(() => {
-              const installedItems = (props.items ?? []).filter((it) => {
-                const remoteId = String(it.id);
-                const isLocal = typeof it.id === "string" && remoteId.startsWith("local:");
-                return isLocal || (props.installedIds?.has(remoteId) ?? false) || (props.installedRemoteIds?.has(remoteId) ?? false);
-              });
               if (installedItems.length === 0) return nothing;
               return html`
                 <div class="emp-installed-section">
@@ -311,18 +369,17 @@ export function renderEmployeeMarket(props: EmployeeMarketProps) {
 
             ${props.loading
               ? html`<div class="emp-loading">加载中...</div>`
-              : filteredItems.length === 0
+              : filteredItems.length === 0 && installedItems.length === 0
                 ? html`<div class="emp-empty">暂无匹配的数字员工</div>`
                 : html`
                     <div class="emp-sections">
                       ${sectionsFixed.map(
-                        (section, index) =>
+                        (section) =>
                           section.items.length > 0
                             ? html`
                                 <div class="emp-section">
                                   <div class="emp-section__header">
                                     <h3 class="emp-section__title">${section.title}</h3>
-                                    ${index === 0 ? toolbarActions : nothing}
                                   </div>
                                   <div class="emp-grid">
                                     ${section.items.map((it) => {
@@ -389,14 +446,19 @@ export function renderEmployeeMarket(props: EmployeeMarketProps) {
                         ${renderEmployeeDetailActions(props, props.selectedDetail)}
                       </div>
                     </div>
-                    <div class="emp-detail-meta-right" style="display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; flex-shrink: 0;">
+                    <div class="emp-detail-meta-right">
                       ${(props.selectedDetail.category ?? "").trim()
                         ? html`<span class="badge ghost">${normalizeCategory(props.selectedDetail.category)}</span>`
                         : nothing}
                       ${(props.selectedDetail.tags ?? "").trim()
                         ? splitCsv(props.selectedDetail.tags).map((t) => html`<span class="badge ghost">${t}</span>`)
                         : nothing}
-                      <button class="btn emp-detail-modal__close" aria-label="关闭" @click=${props.onDetailClose}>×</button>
+                      <button
+                        class="emp-detail-modal__close"
+                        type="button"
+                        aria-label="关闭"
+                        @click=${props.onDetailClose}
+                      ></button>
                     </div>
                   </div>
 

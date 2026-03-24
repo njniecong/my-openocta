@@ -142,10 +142,10 @@ function renderSkillCardActions(
     return html`
       <div class="market-card-actions">
         ${props.onDelete
-          ? html`<button class="market-card-button market-card-button--danger" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onDelete!(folder); }}>删除</button>`
+          ? html`<button class="market-card-button" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onDelete!(folder); }}>删除</button>`
           : nothing}
         ${props.onToggleEnabled
-          ? html`<button class="market-card-button market-card-button--ghost" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onToggleEnabled!(folder, !enabled); }}>${enabled ? "禁用" : "启用"}</button>`
+          ? html`<button class="market-card-button" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onToggleEnabled!(folder, !enabled); }}>${enabled ? "禁用" : "启用"}</button>`
           : nothing}
       </div>
     `;
@@ -153,7 +153,7 @@ function renderSkillCardActions(
   if (props.onInstall) {
     return html`
       <button
-        class="market-card-button market-card-button--primary"
+        class="market-card-button"
         type="button"
         ?disabled=${installing}
         @click=${(e: Event) => {
@@ -167,7 +167,7 @@ function renderSkillCardActions(
   }
   return html`
     <a
-      class="market-card-button market-card-button--primary"
+      class="market-card-button"
       href=${`/api/v1/skills/${encodeURIComponent(folder)}/download`}
       target="_blank"
       rel="noopener"
@@ -179,13 +179,13 @@ function renderSkillCardActions(
   `;
 }
 
-function renderSkillMeta(tags: string[], os: string[], status: string, enabled: boolean) {
+function renderSkillMeta(tags: string[], os: string[], status: string) {
   return html`
     <div class="market-card-meta">
-      <span class="market-card-chip market-card-chip--muted">eligible</span>
-      <span class="market-card-chip market-card-chip--state">${enabled ? "已启用" : "已禁用"}</span>
-      ${status ? html`<span class="market-card-chip">${status}</span>` : nothing}
-      ${tags.slice(0, 2).map((t) => html`<span class="market-card-chip">${t}</span>`)}
+      ${status
+        ? html`<span class="market-card-chip">${status}</span>`
+        : html`<span class="market-card-chip market-card-chip--muted">未标注</span>`}
+      ${tags.slice(0, 3).map((t) => html`<span class="market-card-chip">${t}</span>`)}
       ${os.length > 0 ? html`<span class="market-card-chip">OS: ${os.join("/")}</span>` : nothing}
     </div>
   `;
@@ -243,6 +243,13 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
     </div>
   `;
 
+  const installedItems = (props.items ?? []).filter((it) => {
+    if (!(props.installedKeys?.has(it.folder) ?? false)) return false;
+    if (!q) return true;
+    const text = `${it.name ?? ""} ${it.description ?? ""} ${it.folder ?? ""}`.toLowerCase();
+    return text.includes(q);
+  });
+
   const showDetailModal = Boolean(props.selectedFolder);
   const closeDetail = () =>
     props.onDetailClose ? props.onDetailClose() : props.onSelect("");
@@ -254,11 +261,9 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
           <div class="emp-main">
             ${props.error ? html`<div class="callout danger" style="margin-bottom: 16px;">${props.error}</div>` : nothing}
             ${props.installSuccess ? html`<div class="callout success" style="margin-bottom: 16px;">${props.installSuccess}</div>` : nothing}
+            ${toolbarActions}
 
             ${(() => {
-              const installedItems = (props.items ?? []).filter((it) =>
-                props.installedKeys?.has(it.folder),
-              );
               if (installedItems.length === 0) return nothing;
               return html`
                 <div class="emp-installed-section">
@@ -283,7 +288,7 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
                             </div>
                             <h3 class="emp-card__title">${it.name || it.folder}</h3>
                             <p class="emp-card__desc">${it.description ?? it.folder ?? "暂无描述"}</p>
-                            ${renderSkillMeta(tags, os, status, enabled)}
+                            ${renderSkillMeta(tags, os, status)}
                           </div>
                         </div>
                       `;
@@ -387,16 +392,15 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
 
             ${props.loading
               ? html`<div class="emp-loading">加载中...</div>`
-              : orderedGroups.length === 0
+              : orderedGroups.length === 0 && installedItems.length === 0
                 ? html`<div class="emp-empty">暂无匹配的技能</div>`
                 : html`
                     <div class="emp-sections">
                       ${orderedGroups.map(
-                        (group, index) => html`
+                        (group) => html`
                           <div class="emp-section">
                             <div class="emp-section__header">
                               <h3 class="emp-section__title">${group.name}</h3>
-                              ${index === 0 ? toolbarActions : nothing}
                             </div>
                             <div class="emp-grid">
                               ${group.items.map((it) => {
@@ -431,7 +435,7 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
                                       </div>
                                       <h3 class="emp-card__title">${it.name || it.folder}</h3>
                                       <p class="emp-card__desc">${it.description ?? it.folder ?? "暂无描述"}</p>
-                                      ${renderSkillMeta(tags, os, status, enabled)}
+                                      ${renderSkillMeta(tags, os, status)}
                                     </div>
                                   </div>
                                 `;
@@ -474,7 +478,7 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
                         })()}
                       </div>
                     </div>
-                    <div class="emp-detail-meta-right" style="display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; flex-shrink: 0;">
+                    <div class="emp-detail-meta-right">
                       ${(() => {
                         const sel = props.items.find((it) => it.folder === props.selectedFolder);
                         if (!sel) return nothing;
@@ -485,7 +489,12 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
                           ${tags.map((t) => html`<span class="badge ghost">${t}</span>`)}
                         `;
                       })()}
-                      <button class="btn emp-detail-modal__close" aria-label="关闭" @click=${closeDetail}>×</button>
+                      <button
+                        class="emp-detail-modal__close"
+                        type="button"
+                        aria-label="关闭"
+                        @click=${closeDetail}
+                      ></button>
                     </div>
                   </div>
                   <div class="emp-detail-modal__body">

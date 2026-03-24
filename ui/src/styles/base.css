@@ -47,6 +47,79 @@
   --primary: #ff5c5c;
   --primary-foreground: #ffffff;
 
+  /* Catalog / Tutorials redesign */
+  --catalog-accent: #24ba51;
+  --catalog-accent-strong: #2fd55e;
+  --catalog-accent-soft: rgba(36, 186, 81, 0.18);
+  --catalog-shell-bg: #14191f;
+  --catalog-topbar-bg: rgba(20, 25, 31, 0.94);
+  --catalog-topbar-border: #27303a;
+  --catalog-topbar-text: #8d97a3;
+  --catalog-topbar-text-active: #f3f6f8;
+  --catalog-topbar-active-underline: #24ba51;
+  --catalog-topbar-brand-sub: #76808c;
+  --catalog-topbar-pill-bg: #1d232b;
+  --catalog-topbar-pill-text: #c3ccd5;
+  --catalog-topbar-pill-muted: #8d97a3;
+  --catalog-topbar-pill-hover: #f3f6f8;
+  --catalog-nav-bg: #181d24;
+  --catalog-nav-label: #6f7883;
+  --catalog-nav-item-text: #b2bac4;
+  --catalog-nav-item-hover-text: #4fcb73;
+  --catalog-nav-item-active-bg: rgba(36, 186, 81, 0.12);
+  --catalog-nav-item-active-text: #4fcb73;
+  --catalog-nav-count-bg: #232a33;
+  --catalog-nav-count-text: #96a0ab;
+  --catalog-content-bg: #14191f;
+  --catalog-card-bg: #181d24;
+  --catalog-card-hover-border: #24ba51;
+  --catalog-card-icon-bg: #212832;
+  --catalog-card-title: #f3f6f8;
+  --catalog-card-desc: #98a2ad;
+  --catalog-search-bg: #1b2028;
+  --catalog-search-text: #e3e7eb;
+  --catalog-search-placeholder: #77818c;
+  --catalog-button-bg: #1c232b;
+  --catalog-button-border: #2e3742;
+  --catalog-button-text: #d1d8df;
+  --catalog-button-hover-bg: #242c35;
+  --catalog-button-hover-border: #3b4651;
+  --catalog-button-hover-text: #f5f8fa;
+  --catalog-button-ghost-bg: #1f2630;
+  --catalog-button-installed-bg: #1a2028;
+  --catalog-button-installed-text: #707b86;
+  --catalog-button-danger-hover-border: color-mix(in srgb, var(--danger) 42%, var(--catalog-button-border));
+  --catalog-button-danger-hover-bg: rgba(239, 68, 68, 0.14);
+  --catalog-button-danger-hover-text: #ff9ea5;
+  --catalog-chip-bg: #202732;
+  --catalog-chip-text: #c7d0d8;
+  --catalog-chip-muted-text: #89939e;
+  --catalog-chip-state-bg: rgba(36, 186, 81, 0.14);
+  --catalog-chip-state-border: rgba(36, 186, 81, 0.38);
+  --catalog-chip-state-text: #60d783;
+  --tutorials-board-bg: #181d24;
+  --tutorials-board-border: #2b333d;
+  --tutorials-board-title: #f3f6f8;
+  --tutorials-category-text: #c5ced6;
+  --tutorials-category-hover-bg: #222a33;
+  --tutorials-category-active-bg: #242d37;
+  --tutorials-category-active-text: #f3f6f8;
+  --tutorials-content-border: #2b333d;
+  --tutorials-course-border: #2b333d;
+  --tutorials-lesson-duration: #87919c;
+  --tutorials-video-bg: #10151b;
+  --tutorials-detail-link: #d1d8df;
+  --tutorials-link-overlay-bg: rgba(10, 13, 18, 0.78);
+  --detail-modal-bg: #181d24;
+  --detail-modal-border: #2b333d;
+  --detail-modal-shadow: 0 18px 50px rgba(0, 0, 0, 0.42);
+  --detail-modal-divider: #2b333d;
+  --detail-title-color: #f3f6f8;
+  --detail-summary-color: #98a2ad;
+  --detail-status-border: #33404d;
+  --detail-status-bg: #202732;
+  --detail-status-text: #aeb8c3;
+
   /* Secondary - Teal accent for variety */
   --secondary: #1e2028;
   --secondary-foreground: #f4f4f5;
@@ -154,6 +227,79 @@
   --accent-glow: rgba(220, 38, 38, 0.15);
   --primary: #dc2626;
   --primary-foreground: #ffffff;
+
+  /* Catalog / Tutorials redesign */
+  --catalog-accent: #24ba51;
+  --catalog-accent-strong: #24ba51;
+  --catalog-accent-soft: rgba(52, 199, 89, 0.1);
+  --catalog-shell-bg: #f5f6f7;
+  --catalog-topbar-bg: rgba(255, 255, 255, 0.96);
+  --catalog-topbar-border: #eceff2;
+  --catalog-topbar-text: #666c73;
+  --catalog-topbar-text-active: #22262b;
+  --catalog-topbar-active-underline: #22262b;
+  --catalog-topbar-brand-sub: #8b9198;
+  --catalog-topbar-pill-bg: #f8fafb;
+  --catalog-topbar-pill-text: #60656c;
+  --catalog-topbar-pill-muted: #8a9097;
+  --catalog-topbar-pill-hover: #23272d;
+  --catalog-nav-bg: #ffffff;
+  --catalog-nav-label: #949aa2;
+  --catalog-nav-item-text: #45474a;
+  --catalog-nav-item-hover-text: #24ba51;
+  --catalog-nav-item-active-bg: #f5f6f7;
+  --catalog-nav-item-active-text: #24ba51;
+  --catalog-nav-count-bg: #f5f6f7;
+  --catalog-nav-count-text: #777a7e;
+  --catalog-content-bg: #f5f6f7;
+  --catalog-card-bg: #ffffff;
+  --catalog-card-hover-border: #24ba51;
+  --catalog-card-icon-bg: #f3f6f9;
+  --catalog-card-title: #121317;
+  --catalog-card-desc: #45474a;
+  --catalog-search-bg: #ffffff;
+  --catalog-search-text: #121317;
+  --catalog-search-placeholder: #71717a;
+  --catalog-button-bg: #ffffff;
+  --catalog-button-border: #dfe5ea;
+  --catalog-button-text: #4f565f;
+  --catalog-button-hover-bg: #ffffff;
+  --catalog-button-hover-border: #cbd3db;
+  --catalog-button-hover-text: #1f2329;
+  --catalog-button-ghost-bg: #f8fafb;
+  --catalog-button-installed-bg: #f8fafb;
+  --catalog-button-installed-text: #a1a8b0;
+  --catalog-button-danger-hover-border: #f1c2c5;
+  --catalog-button-danger-hover-bg: #fff8f8;
+  --catalog-button-danger-hover-text: #d74d57;
+  --catalog-chip-bg: #f5f6f7;
+  --catalog-chip-text: #45474a;
+  --catalog-chip-muted-text: #777a7e;
+  --catalog-chip-state-bg: #ffffff;
+  --catalog-chip-state-border: #08be7e;
+  --catalog-chip-state-text: #08be7e;
+  --tutorials-board-bg: #ffffff;
+  --tutorials-board-border: #eeeff1;
+  --tutorials-board-title: #1f2329;
+  --tutorials-category-text: #45474a;
+  --tutorials-category-hover-bg: #f5f6f7;
+  --tutorials-category-active-bg: #f5f6f7;
+  --tutorials-category-active-text: #121317;
+  --tutorials-content-border: #eeeff1;
+  --tutorials-course-border: #eeeff1;
+  --tutorials-lesson-duration: #777a7e;
+  --tutorials-video-bg: #ffffff;
+  --tutorials-detail-link: #45474a;
+  --tutorials-link-overlay-bg: rgba(18, 21, 26, 0.74);
+  --detail-modal-bg: #ffffff;
+  --detail-modal-border: #eceff2;
+  --detail-modal-shadow: 0 18px 50px rgba(19, 27, 35, 0.12);
+  --detail-modal-divider: #eeeff1;
+  --detail-title-color: #1f2329;
+  --detail-summary-color: #666d76;
+  --detail-status-border: #e5ebf0;
+  --detail-status-bg: #f8fafb;
+  --detail-status-text: #818892;
 
   --secondary: #f4f4f5;
   --secondary-foreground: #3f3f46;
@@ -264,11 +410,6 @@ textarea,
 select {
   font: inherit;
   color: inherit;
-}
-
-::selection {
-  background: var(--accent-subtle);
-  color: var(--text-strong);
 }
 
 /* Scrollbar styling */

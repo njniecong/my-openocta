@@ -277,15 +277,20 @@ export function renderTutorials(props: TutorialsProps) {
                   </div>
                   <div class="tutorials-detail-modal__actions">
                     <a
-                      class="btn"
+                      class="tutorials-detail-modal__link"
                       href=${props.playingLink}
                       target="_blank"
                       rel="noopener noreferrer"
                       @click=${(e: Event) => e.stopPropagation()}
                     >
-                      打开原链接
+                      在哔哩哔哩打开
                     </a>
-                    <button class="btn emp-detail-modal__close" aria-label="关闭" @click=${props.onPlayingClose}>×</button>
+                    <button
+                      class="emp-detail-modal__close"
+                      type="button"
+                      aria-label="关闭"
+                      @click=${props.onPlayingClose}
+                    ></button>
                   </div>
                 </div>
                 <div class="emp-detail-modal__body tutorials-detail-modal__body">

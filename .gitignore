@@ -19,3 +19,4 @@
 ./src/.DS_Store
 ./docs/
 **/.DS_Store
+/ui/src/ui/__screenshots__

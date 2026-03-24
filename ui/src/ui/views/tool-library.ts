@@ -138,10 +138,10 @@ function renderToolCardActions(
     return html`
       <div class="market-card-actions">
         ${props.onDelete
-          ? html`<button class="market-card-button market-card-button--danger" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onDelete!(serverKey); }}>删除</button>`
+          ? html`<button class="market-card-button" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onDelete!(serverKey); }}>删除</button>`
           : nothing}
         ${props.onToggleEnabled
-          ? html`<button class="market-card-button market-card-button--ghost" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onToggleEnabled!(serverKey, !enabled); }}>${enabled ? "禁用" : "启用"}</button>`
+          ? html`<button class="market-card-button" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onToggleEnabled!(serverKey, !enabled); }}>${enabled ? "禁用" : "启用"}</button>`
           : nothing}
         ${props.onEdit
           ? html`<button class="market-card-button market-card-button--primary" type="button" @click=${(e: Event) => { e.stopPropagation(); props.onEdit!(serverKey); }}>编辑</button>`
@@ -152,7 +152,7 @@ function renderToolCardActions(
   if (props.onInstall) {
     return html`
       <button
-        class="market-card-button market-card-button--primary"
+        class="market-card-button"
         type="button"
         ?disabled=${installing}
         @click=${(e: Event) => {
@@ -166,7 +166,7 @@ function renderToolCardActions(
   }
   return html`
     <a
-      class="market-card-button market-card-button--primary"
+      class="market-card-button"
       href=${`/api/v1/mcps/${item.id}/download`}
       target="_blank"
       rel="noopener"
@@ -178,15 +178,16 @@ function renderToolCardActions(
   `;
 }
 
-function renderToolMeta(item: McpListItem | McpDetail, enabled: boolean) {
+function renderToolMeta(item: McpListItem | McpDetail) {
   const tags = splitCsv(item.tags);
   const status = statusLabel(item.status);
   return html`
     <div class="market-card-meta">
-      <span class="market-card-chip market-card-chip--muted">stdio</span>
-      <span class="market-card-chip market-card-chip--state">${enabled ? "已启用" : "已禁用"}</span>
+      ${(item.category ?? "").trim()
+        ? html`<span class="market-card-chip market-card-chip--muted">${normalizeCategory(item.category)}</span>`
+        : nothing}
       ${status ? html`<span class="market-card-chip">${status}</span>` : nothing}
-      ${tags.slice(0, 2).map((t) => html`<span class="market-card-chip">${t}</span>`)}
+      ${tags.slice(0, 3).map((t) => html`<span class="market-card-chip">${t}</span>`)}
     </div>
   `;
 }
@@ -256,6 +257,10 @@ export function renderToolLibrary(props: ToolLibraryProps) {
         : nothing}
     </div>
   `;
+
+  const installedItems = filteredByQuery.filter((it) =>
+    props.installedRemoteIds?.has(String(it.id)),
+  );
 
   const showDetailModal = props.selectedDetail !== null;
   // 勿用 ??：onDetailClose() 返回 void/undefined 时仍会误触发 onSelect(-1) → 请求 mcps/-1
@@ -381,11 +386,9 @@ export function renderToolLibrary(props: ToolLibraryProps) {
             }
 
             ${props.error ? html`<div class="callout danger" style="margin-bottom: 16px;">${props.error}</div>` : nothing}
+            ${toolbarActions}
 
             ${(() => {
-              const installedItems = (props.items ?? []).filter((it) =>
-                props.installedRemoteIds?.has(String(it.id)),
-              );
               if (installedItems.length === 0) return nothing;
               return html`
                 <div class="emp-installed-section">
@@ -409,7 +412,7 @@ export function renderToolLibrary(props: ToolLibraryProps) {
                             </div>
                             <h3 class="emp-card__title">${it.name}</h3>
                             <p class="emp-card__desc">${it.description ?? "暂无描述"}</p>
-                            ${renderToolMeta(it, enabled)}
+                            ${renderToolMeta(it)}
                           </div>
                         </div>
                       `;
@@ -421,18 +424,17 @@ export function renderToolLibrary(props: ToolLibraryProps) {
 
             ${props.loading
               ? html`<div class="emp-loading">加载中...</div>`
-              : filteredItems.length === 0
+              : filteredItems.length === 0 && installedItems.length === 0
                 ? html`<div class="emp-empty">暂无匹配的 MCP</div>`
                 : html`
                       <div class="emp-sections">
                         ${sectionsFixed.map(
-                          (section, index) =>
+                          (section) =>
                             section.items.length > 0
                               ? html`
                                   <div class="emp-section">
                                     <div class="emp-section__header">
                                       <h3 class="emp-section__title">${section.title}</h3>
-                                      ${index === 0 ? toolbarActions : nothing}
                                     </div>
                                     <div class="emp-grid">
                                       ${section.items.map((it) => {
@@ -462,7 +464,7 @@ export function renderToolLibrary(props: ToolLibraryProps) {
                                               </div>
                                               <h3 class="emp-card__title">${it.name}</h3>
                                               <p class="emp-card__desc">${it.description ?? "暂无描述"}</p>
-                                              ${renderToolMeta(it, enabled)}
+                                              ${renderToolMeta(it)}
                                             </div>
                                           </div>
                                         `;
@@ -503,7 +505,7 @@ export function renderToolLibrary(props: ToolLibraryProps) {
                         })()}
                       </div>
                     </div>
-                    <div class="emp-detail-meta-right" style="display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; flex-shrink: 0;">
+                    <div class="emp-detail-meta-right">
                       ${(props.selectedDetail.category ?? "").trim()
                         ? html`<span class="badge ghost">${normalizeCategory(props.selectedDetail.category)}</span>`
                         : nothing}
@@ -513,7 +515,12 @@ export function renderToolLibrary(props: ToolLibraryProps) {
                       ${(props.selectedDetail.tags ?? "").trim()
                         ? splitCsv(props.selectedDetail.tags).map((t) => html`<span class="badge ghost">${t}</span>`)
                         : nothing}
-                      <button class="btn emp-detail-modal__close" aria-label="关闭" @click=${closeDetail}>×</button>
+                      <button
+                        class="emp-detail-modal__close"
+                        type="button"
+                        aria-label="关闭"
+                        @click=${closeDetail}
+                      ></button>
                     </div>
                   </div>
                   <div class="emp-detail-modal__body">
