@@ -569,7 +569,7 @@ function renderJobState(job: CronJob) {
 function renderRun(entry: CronRunLogEntry, basePath: string) {
   const chatUrl =
     typeof entry.sessionKey === "string" && entry.sessionKey.trim().length > 0
-      ? `${pathForTab("chat", basePath)}?session=${encodeURIComponent(entry.sessionKey)}`
+      ? `${pathForTab("message", basePath)}?session=${encodeURIComponent(entry.sessionKey)}`
       : null;
   return html`
     <div class="list-item">

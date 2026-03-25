@@ -3,7 +3,7 @@ import type { GatewayHelloOk } from "./gateway.ts";
 import type { ChatAttachment, ChatQueueItem } from "./ui-types.ts";
 import { parseAgentSessionKey } from "./sessions/session-key-utils.js";
 import { scheduleChatScroll } from "./app-scroll.ts";
-import { setLastActiveSessionKey } from "./app-settings.ts";
+import { setLastActiveSessionKey, syncUrlWithSessionKey } from "./app-settings.ts";
 import { resetToolStream } from "./app-tool-stream.ts";
 import { abortChatRun, loadChatHistory, sendChatMessage } from "./controllers/chat.ts";
 import { loadSessions } from "./controllers/sessions.ts";
@@ -26,6 +26,56 @@ export type ChatHost = {
 };
 
 export const CHAT_SESSIONS_ACTIVE_MINUTES = 0;
+
+/**
+ * 若当前 sessionKey 已不在网关 sessions.list 中（例如已删除），则切换到可用会话并更新 URL，
+ * 避免 chat.history 仍按旧 key 返回已归档内容。仅在列表已成功加载时生效。
+ */
+async function reconcileInvalidChatSessionFromList(host: OpenClawApp): Promise<boolean> {
+  const key = host.sessionKey?.trim();
+  if (!key) {
+    return false;
+  }
+  const rows = host.sessionsResult?.sessions;
+  if (!Array.isArray(rows)) {
+    return false;
+  }
+
+  const inList = rows.some((row) => row.key === key);
+  if (rows.length > 0 && inList) {
+    return false;
+  }
+  if (rows.length === 0 && key === "agent.main.main") {
+    return false;
+  }
+
+  const fallback =
+    rows.length > 0
+      ? (rows.find((r) => r.key && r.kind !== "global") ?? rows[0])?.key?.trim() ||
+        "agent.main.main"
+      : "agent.main.main";
+
+  if (fallback === key) {
+    return false;
+  }
+
+  host.sessionKey = fallback;
+  host.applySettings({
+    ...host.settings,
+    sessionKey: fallback,
+    lastActiveSessionKey: fallback,
+  });
+  host.chatMessage = "";
+  host.chatAttachments = [];
+  host.resetToolStream();
+  await host.loadAssistantIdentity();
+  syncUrlWithSessionKey(
+    host as unknown as Parameters<typeof syncUrlWithSessionKey>[0],
+    fallback,
+    true,
+  );
+  return true;
+}
 
 export function isChatBusy(host: ChatHost) {
   return host.chatSending || Boolean(host.chatRunId);
@@ -209,14 +259,16 @@ export async function handleSendChat(
 }
 
 export async function refreshChat(host: ChatHost) {
-  await Promise.all([
-    loadChatHistory(host as unknown as OpenClawApp),
-    loadSessions(host as unknown as OpenClawApp, {
-      activeMinutes: CHAT_SESSIONS_ACTIVE_MINUTES,
-      includeLastMessage: true,
-    }),
-    refreshChatAvatar(host),
-  ]);
+  const app = host as unknown as OpenClawApp;
+  await loadSessions(app, {
+    activeMinutes: CHAT_SESSIONS_ACTIVE_MINUTES,
+    includeLastMessage: true,
+  });
+  const switched = await reconcileInvalidChatSessionFromList(app);
+  await Promise.all([loadChatHistory(app), refreshChatAvatar(host)]);
+  if (switched && !app.lastError) {
+    app.lastError = "该会话已不存在或已删除，已切换到可用会话。";
+  }
   scheduleChatScroll(host as unknown as Parameters<typeof scheduleChatScroll>[0]);
 }
 

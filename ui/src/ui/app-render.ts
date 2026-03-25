@@ -109,6 +109,103 @@ function sessionSidebarHaystackMatches(haystack: string, query: string): boolean
   return tokens.every((t) => haystack.includes(t));
 }
 
+/** 侧栏会话 ⋯ 菜单预估高度（用于贴底向上展开） */
+const SESSION_OVERFLOW_FLYOUT_EST_HEIGHT = 132;
+const SESSION_OVERFLOW_GAP = 6;
+
+function positionSessionOverflowFromButtonRect(r: DOMRect): { top: number; right: number } {
+  const pad = 8;
+  let top = r.bottom + SESSION_OVERFLOW_GAP;
+  if (top + SESSION_OVERFLOW_FLYOUT_EST_HEIGHT > window.innerHeight - pad) {
+    top = Math.max(pad, r.top - SESSION_OVERFLOW_FLYOUT_EST_HEIGHT - SESSION_OVERFLOW_GAP);
+  }
+  return { top, right: window.innerWidth - r.right };
+}
+
+function renderSessionOverflowFlyout(state: AppViewState, basePath: string) {
+  const ov = state.sessionOverflow;
+  if (!ov) {
+    return nothing;
+  }
+  const key = ov.key;
+  const isMainSession = key === "agent.main.main";
+  const close = () => {
+    state.sessionOverflow = null;
+  };
+  const shareUrlForKey = () => {
+    const path = pathForTab("message", basePath);
+    const u = new URL(path, window.location.origin);
+    u.searchParams.set("session", key);
+    return u.toString();
+  };
+  return html`
+    <div class="session-overflow-backdrop" @click=${close}></div>
+    <div
+      class="session-overflow-flyout"
+      style="top: ${ov.top}px; right: ${ov.right}px;"
+      role="menu"
+      aria-label="会话操作"
+      @click=${(e: Event) => e.stopPropagation()}
+    >
+      <button
+        type="button"
+        role="menuitem"
+        class="session-item__overflow-item"
+        @click=${() => {
+          close();
+          state.sessionEditingKey = key;
+        }}
+      >
+        重命名
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        class="session-item__overflow-item"
+        @click=${async () => {
+          close();
+          const url = shareUrlForKey();
+          try {
+            await navigator.clipboard.writeText(url);
+            window.alert("会话链接已复制到剪贴板");
+          } catch {
+            window.prompt("无法自动复制，请手动复制链接：", url);
+          }
+        }}
+      >
+        分享链接
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        class="session-item__overflow-item session-item__overflow-item--danger"
+        ?disabled=${isMainSession}
+        @click=${async () => {
+          close();
+          if (isMainSession) return;
+          const wasActive = state.sessionKey === key;
+          await deleteSession(state, key);
+          if (wasActive) {
+            const nextKey =
+              state.sessionsResult?.sessions?.[0]?.key ?? "agent.main.main";
+            state.sessionKey = nextKey;
+            state.chatMessage = "";
+            state.resetToolStream();
+            state.applySettings({
+              ...state.settings,
+              sessionKey: nextKey,
+              lastActiveSessionKey: nextKey,
+            });
+            await Promise.all([loadChatHistory(state), refreshChatAvatar(state)]);
+          }
+        }}
+      >
+        删除
+      </button>
+    </div>
+  `;
+}
+
 // Module-scope debounce for usage date changes (avoids type-unsafe hacks on state object)
 let usageDateDebounceTimeout: number | null = null;
 const debouncedLoadUsage = (state: UsageState) => {
@@ -410,7 +507,14 @@ export function renderApp(state: AppViewState) {
           </div>
         </div>
       </header>
-      <aside class="nav ${state.settings.navCollapsed ? "nav--collapsed" : ""}">
+      <aside
+        class="nav ${state.settings.navCollapsed ? "nav--collapsed" : ""}"
+        @scroll=${() => {
+          if (state.sessionOverflow) {
+            state.sessionOverflow = null;
+          }
+        }}
+      >
         ${
           state.tab === "message"
             ? html`
@@ -485,31 +589,52 @@ export function renderApp(state: AppViewState) {
                             displayName,
                             subtitle,
                           );
-                          return { key, isCustom, emp, displayName, subtitle, haystack };
+                          const kind = typeof row.kind === "string" ? row.kind : "";
+                          const labelDraft = typeof row.label === "string" ? row.label : "";
+                          return {
+                            key,
+                            isCustom,
+                            emp,
+                            displayName,
+                            subtitle,
+                            haystack,
+                            kind,
+                            labelDraft,
+                          };
                         });
                         const filtered = q.trim()
                           ? rows.filter((r) => sessionSidebarHaystackMatches(r.haystack, q))
                           : rows;
-                        return filtered.map(({ key, isCustom, emp, displayName, subtitle }) => {
-                        const active = key && state.sessionKey === key;
-                        const canEdit = isCustom;
-                        const isEditing = canEdit && state.sessionEditingKey === key;
-                        const saveEdit = async (newLabel: string) => {
-                          if (!key || !newLabel.trim()) {
-                            state.sessionEditingKey = null;
-                            return;
-                          }
-                          await patchSession(state, key, { label: newLabel.trim() });
-                          state.sessionEditingKey = null;
-                        };
-                        return html`
+                        return filtered.map(
+                          ({ key, isCustom, emp, displayName, subtitle, kind, labelDraft }) => {
+                            const active = key && state.sessionKey === key;
+                            const canEdit = isCustom;
+                            const isEditing = state.sessionEditingKey === key;
+                            const isGlobal = kind === "global";
+                            const isMainSession = key === "agent.main.main";
+                            const saveEdit = async (newLabel: string) => {
+                              if (!key) {
+                                state.sessionEditingKey = null;
+                                return;
+                              }
+                              await patchSession(state, key, { label: newLabel.trim() || null });
+                              state.sessionEditingKey = null;
+                            };
+                            return html`
                           <div
                             class="session-item ${active ? "session-item--active" : ""} ${canEdit ? "session-item--editable" : ""}"
                             role="button"
                             tabindex="0"
                             @click=${async (e: Event) => {
                               const target = e.target as HTMLElement;
-                              if (target.closest(".session-item__edit") || target.closest("input")) return;
+                              if (
+                                target.closest(".session-item__overflow") ||
+                                target.closest(".session-item__edit") ||
+                                target.closest("input")
+                              ) {
+                                return;
+                              }
+                              state.sessionOverflow = null;
                               if (!key) return;
                               state.sessionKey = key;
                               state.chatMessage = "";
@@ -544,7 +669,7 @@ export function renderApp(state: AppViewState) {
                                     <input
                                       class="session-item__input"
                                       type="text"
-                                      .value=${displayName}
+                                      .value=${labelDraft}
                                       @blur=${(e: Event) => saveEdit((e.target as HTMLInputElement).value)}
                                       @keydown=${(e: KeyboardEvent) => {
                                         if (e.key === "Enter") {
@@ -561,9 +686,38 @@ export function renderApp(state: AppViewState) {
                                 : html`<span class="session-item__text">${displayName}</span>`}
                               ${!isEditing && subtitle ? html`<span class="session-item__sub muted">${subtitle}</span>` : nothing}
                             </div>
+                            ${
+                              !isGlobal
+                                ? html`
+                                    <div class="session-item__overflow">
+                                      <button
+                                        type="button"
+                                        class="btn btn--icon session-item__overflow-btn"
+                                        aria-label="会话操作"
+                                        aria-haspopup="menu"
+                                        aria-expanded=${state.sessionOverflow?.key === key ? "true" : "false"}
+                                        @click=${(e: Event) => {
+                                          e.stopPropagation();
+                                          const btn = e.currentTarget as HTMLElement;
+                                          const r = btn.getBoundingClientRect();
+                                          const pos = positionSessionOverflowFromButtonRect(r);
+                                          if (state.sessionOverflow?.key === key) {
+                                            state.sessionOverflow = null;
+                                          } else {
+                                            state.sessionOverflow = { key, ...pos };
+                                          }
+                                        }}
+                                      >
+                                        ${icons.moreHorizontal}
+                                      </button>
+                                    </div>
+                                  `
+                                : nothing
+                            }
                           </div>
                         `;
-                      });
+                          },
+                        );
                       })()
                     }
                   </div>
@@ -2385,18 +2539,11 @@ export function renderApp(state: AppViewState) {
                     }
                   }
 
-                  // 3. 默认模型不在列表中时补充
-                  if (defaultRef && !seen.has(defaultRef)) {
-                    opts.unshift({ value: defaultRef, label: defaultRef });
-                  }
-
-                  // 4. 若仍为空，至少提供「默认」选项
-                  if (opts.length === 0) {
-                    opts.push({
-                      value: defaultRef ?? "",
-                      label: defaultRef ? `默认 (${defaultRef})` : "默认",
-                    });
-                  }
+                  // 3. 首项固定为「使用默认配置」：modelRef 为 null 时选中此项
+                  opts.unshift({
+                    value: "",
+                    label: defaultRef ? `默认 (${defaultRef})` : "默认",
+                  });
 
                   return opts;
                 })(),
@@ -3310,5 +3457,6 @@ export function renderApp(state: AppViewState) {
           : nothing
       }
     </div>
+    ${renderSessionOverflowFlyout(state, basePath)}
   `;
 }

@@ -334,6 +334,77 @@
   color: var(--text);
 }
 
+.session-item__overflow {
+  position: relative;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.session-item__overflow-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 8px;
+  color: var(--muted);
+}
+
+.session-item__overflow-btn:hover {
+  color: var(--text);
+  background: var(--bg2);
+}
+
+.session-item__overflow-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ⋯ 菜单：fixed 浮层在 shell 根级渲染，避免 .nav / .session-list 的 overflow 裁剪 */
+.session-overflow-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.session-overflow-flyout {
+  position: fixed;
+  z-index: 201;
+  min-width: 168px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow:
+    0 4px 24px color-mix(in srgb, var(--text) 10%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--border) 50%, transparent);
+}
+
+.session-item__overflow-item {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.session-item__overflow-item:hover:not(:disabled) {
+  background: var(--bg2);
+}
+
+.session-item__overflow-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.session-item__overflow-item--danger {
+  color: var(--danger, #c62828);
+}
+
 .topbar .nav-collapse-toggle {
   width: 36px;
   height: 36px;

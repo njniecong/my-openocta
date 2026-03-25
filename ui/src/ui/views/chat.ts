@@ -543,7 +543,7 @@ export function renderChat(props: ChatProps) {
                     <label class="field chat-compose__model-select">
                       <select
                         aria-label="大模型"
-                        .value=${props.modelRef ?? props.defaultModelRef ?? ""}
+                        .value=${props.modelRef ?? ""}
                         ?disabled=${!props.connected}
                         @change=${(e: Event) => {
                           const value = (e.target as HTMLSelectElement).value.trim();

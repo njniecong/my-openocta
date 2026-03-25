@@ -307,7 +307,7 @@ function renderRow(
   const showDisplayName = Boolean(displayName && displayName !== row.key && displayName !== label);
   const canLink = row.kind !== "global";
   const chatUrl = canLink
-    ? `${pathForTab("chat", basePath)}?session=${encodeURIComponent(row.key)}`
+    ? `${pathForTab("message", basePath)}?session=${encodeURIComponent(row.key)}`
     : null;
   const isMainSession = row.key === "agent.main.main";
   const selected = selectedKeys.includes(row.key);

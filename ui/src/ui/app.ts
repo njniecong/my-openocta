@@ -292,6 +292,7 @@ export class OpenClawApp extends LitElement {
   @state() sessionsLoading = false;
   @state() sessionsResult: SessionsListResult | null = null;
   @state() sessionEditingKey: string | null = null;
+  @state() sessionOverflow: { top: number; right: number; key: string } | null = null;
   @state() sessionSidebarQuery = "";
   @state() sessionsError: string | null = null;
   @state() sessionsFilterActive = "";
@@ -519,6 +520,14 @@ export class OpenClawApp extends LitElement {
   private themeMedia: MediaQueryList | null = null;
   private themeMediaHandler: ((event: MediaQueryListEvent) => void) | null = null;
   private topbarObserver: ResizeObserver | null = null;
+  private sessionOverflowEscapeHandler = (ev: KeyboardEvent) => {
+    if (ev.key !== "Escape") {
+      return;
+    }
+    if (this.sessionOverflow) {
+      this.sessionOverflow = null;
+    }
+  };
 
   createRenderRoot() {
     return this;
@@ -526,6 +535,7 @@ export class OpenClawApp extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    document.addEventListener("keydown", this.sessionOverflowEscapeHandler);
     handleConnected(this as unknown as Parameters<typeof handleConnected>[0]);
   }
 
@@ -534,6 +544,7 @@ export class OpenClawApp extends LitElement {
   }
 
   disconnectedCallback() {
+    document.removeEventListener("keydown", this.sessionOverflowEscapeHandler);
     handleDisconnected(this as unknown as Parameters<typeof handleDisconnected>[0]);
     super.disconnectedCallback();
   }

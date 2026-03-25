@@ -144,24 +144,26 @@ export function applySettingsFromUrl(host: SettingsHost) {
 }
 
 export function setTab(host: SettingsHost, next: Tab) {
-  if (host.tab !== next) {
-    host.tab = next;
+  const nextTab =
+    next === "chat" && (host.sessionKey?.trim() ?? "") ? ("message" as Tab) : next;
+  if (host.tab !== nextTab) {
+    host.tab = nextTab;
   }
-  if (next === "chat") {
+  if (nextTab === "chat") {
     host.chatHasAutoScrolled = false;
   }
-  if (next === "logs") {
+  if (nextTab === "logs") {
     startLogsPolling(host as unknown as Parameters<typeof startLogsPolling>[0]);
   } else {
     stopLogsPolling(host as unknown as Parameters<typeof stopLogsPolling>[0]);
   }
-  if (next === "debug") {
+  if (nextTab === "debug") {
     startDebugPolling(host as unknown as Parameters<typeof startDebugPolling>[0]);
   } else {
     stopDebugPolling(host as unknown as Parameters<typeof stopDebugPolling>[0]);
   }
   void refreshActiveTab(host);
-  syncUrlWithTab(host, next, false);
+  syncUrlWithTab(host, nextTab, false);
 }
 
 export function setTheme(host: SettingsHost, next: ThemeMode, context?: ThemeTransitionContext) {
@@ -342,10 +344,26 @@ export function detachThemeListener(host: SettingsHost) {
   host.themeMediaHandler = null;
 }
 
+/** 旧版书签/外链 /chat?session=… 与消息页统一为 /message?session=…，以保留侧栏会话列表 */
+function normalizeLegacyChatSessionPath(host: SettingsHost): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const url = new URL(window.location.href);
+  const sessionFromUrl = url.searchParams.get("session")?.trim() ?? "";
+  const tab = tabFromPath(url.pathname, host.basePath);
+  if (tab !== "chat" || !sessionFromUrl) {
+    return;
+  }
+  url.pathname = normalizePath(pathForTab("message", host.basePath));
+  window.history.replaceState({}, "", url.toString());
+}
+
 export function syncTabWithLocation(host: SettingsHost, replace: boolean) {
   if (typeof window === "undefined") {
     return;
   }
+  normalizeLegacyChatSessionPath(host);
   let resolved = tabFromPath(window.location.pathname, host.basePath) ?? "chat";
   // 配置入口默认进入概览
   if (resolved === "config") {
@@ -359,6 +377,7 @@ export function onPopState(host: SettingsHost) {
   if (typeof window === "undefined") {
     return;
   }
+  normalizeLegacyChatSessionPath(host);
   let resolved = tabFromPath(window.location.pathname, host.basePath);
   if (!resolved) {
     return;
@@ -411,7 +430,7 @@ export function syncUrlWithTab(host: SettingsHost, tab: Tab, replace: boolean) {
   const currentPath = normalizePath(window.location.pathname);
   const url = new URL(window.location.href);
 
-  if (tab === "chat" && host.sessionKey) {
+  if ((tab === "chat" || tab === "message") && host.sessionKey) {
     url.searchParams.set("session", host.sessionKey);
   } else {
     url.searchParams.delete("session");
