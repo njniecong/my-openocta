@@ -3,7 +3,9 @@ package runtime
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -19,6 +21,13 @@ import (
 // 2. Managed/local skills (~/.openclaw/skills)
 // 3. Workspace skills (<workspace>/skills, i.e. workspaceDir/skills)
 func BuildSkillRegistrationsFromThreeLocations(workspaceDir string, cfg *config.OpenOctaConfig) []api.SkillRegistration {
+	regs, _ := LoadSkillRegistrationsWithBaseDirs(workspaceDir, cfg)
+	return regs
+}
+
+// LoadSkillRegistrationsWithBaseDirs loads skills the same way as BuildSkillRegistrationsFromThreeLocations and
+// returns absolute base directories (folders containing SKILL.md) for sandbox allowlists and path resolution.
+func LoadSkillRegistrationsWithBaseDirs(workspaceDir string, cfg *config.OpenOctaConfig) ([]api.SkillRegistration, []string) {
 	opts := &agentSkills.LoadOptions{
 		Config:           cfg,
 		ManagedSkillsDir: "",
@@ -26,15 +35,51 @@ func BuildSkillRegistrationsFromThreeLocations(workspaceDir string, cfg *config.
 	}
 	entries, err := agentSkills.LoadWorkspaceEntries(workspaceDir, opts)
 	if err != nil || len(entries) == 0 {
-		return nil
+		return nil, nil
 	}
-	return entriesToSkillRegistrations(entries)
+	return entriesToSkillRegistrations(entries), uniqueAbsSkillBaseDirs(entries)
 }
 
 // entriesToSkillRegistrations converts OPENOCTA skill entries to agentsdk-go SkillRegistration.
 // It parses name/description from SKILL.md frontmatter (OpenOcta/AgentSkills format), fills
 // Definition.Metadata, builds Matchers (e.g. KeywordMatcher from name/description), and
 // a Handler that reads the skill markdown and returns its content as Result.Output.
+func uniqueAbsSkillBaseDirs(entries []agentSkills.Entry) []string {
+	seen := make(map[string]struct{})
+	var out []string
+	for _, e := range entries {
+		d := strings.TrimSpace(e.BaseDir)
+		if d == "" {
+			continue
+		}
+		abs, err := filepath.Abs(d)
+		if err != nil || abs == "" {
+			continue
+		}
+		if _, ok := seen[abs]; ok {
+			continue
+		}
+		seen[abs] = struct{}{}
+		out = append(out, abs)
+	}
+	return out
+}
+
+// skillActivationPreamble 注入到 SKILL 正文前，避免模型把「代理工作区」与「Skill 落盘目录」混用。
+func skillActivationPreamble(skillBaseDir string) string {
+	skillBaseDir = strings.TrimSpace(skillBaseDir)
+	if skillBaseDir == "" {
+		return ""
+	}
+	abs := skillBaseDir
+	if a, err := filepath.Abs(skillBaseDir); err == nil && a != "" {
+		abs = a
+	}
+	return fmt.Sprintf("## Skill 根目录（scripts 等与此目录对齐；与对话工作区根目录不一定相同）\n\n"+
+		"`%s`\n\n"+
+		"本文中相对路径（例如 `scripts/...`）均相对于上述目录。\n\n---\n\n", abs)
+}
+
 func entriesToSkillRegistrations(entries []agentSkills.Entry) []api.SkillRegistration {
 	var regs []api.SkillRegistration
 	seen := make(map[string]struct{})
@@ -58,6 +103,7 @@ func entriesToSkillRegistrations(entries []agentSkills.Entry) []api.SkillRegistr
 			}
 		}
 		embeddedContent := e.EmbeddedContent
+		skillBaseDir := e.BaseDir
 		regs = append(regs, api.SkillRegistration{
 			Definition: sdkSkills.Definition{
 				Name:                  name,
@@ -67,14 +113,15 @@ func entriesToSkillRegistrations(entries []agentSkills.Entry) []api.SkillRegistr
 				DisableAutoActivation: disableAuto,
 			},
 			Handler: sdkSkills.HandlerFunc(func(ctx context.Context, _ sdkSkills.ActivationContext) (sdkSkills.Result, error) {
+				pre := skillActivationPreamble(skillBaseDir)
 				if len(embeddedContent) > 0 {
-					return sdkSkills.Result{Output: string(embeddedContent)}, nil
+					return sdkSkills.Result{Output: pre + string(embeddedContent)}, nil
 				}
 				data, err := os.ReadFile(filePath)
 				if err != nil {
 					return sdkSkills.Result{}, err
 				}
-				return sdkSkills.Result{Output: string(data)}, nil
+				return sdkSkills.Result{Output: pre + string(data)}, nil
 			}),
 		})
 	}

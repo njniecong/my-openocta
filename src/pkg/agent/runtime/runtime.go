@@ -80,11 +80,13 @@ func New(ctx context.Context, opts Options) (*Runtime, error) {
 	//		}
 	//	}
 	//}
+	var skillSandboxDirs []string
 	if opts.EnableSkills {
-		regs := BuildSkillRegistrationsFromThreeLocations(projectRoot, opts.Config)
+		regs, dirs := LoadSkillRegistrationsWithBaseDirs(projectRoot, opts.Config)
 		if len(regs) > 0 {
 			apiOpts.Skills = regs
 		}
+		skillSandboxDirs = dirs
 	}
 	if opts.EnableSubagents && len(opts.Subagents) > 0 {
 		apiOpts.Subagents = opts.Subagents
@@ -133,6 +135,9 @@ func New(ctx context.Context, opts Options) (*Runtime, error) {
 		if fromConfig != nil {
 			sandboxOpts = mergeSandboxOpts(fromConfig, sandboxOpts)
 		}
+	}
+	if len(skillSandboxDirs) > 0 {
+		sandboxOpts = mergeSandboxOpts(sandboxOpts, &SandboxOpts{ExtraAllowedPaths: skillSandboxDirs})
 	}
 	// enableSandbox already resolved above from config
 	if enableSandbox {
@@ -332,10 +337,11 @@ func containsRule(rules []string, want string) bool {
 
 // SandboxOpts holds optional sandbox overrides for the runtime.
 type SandboxOpts struct {
-	Root          string
-	AllowedPaths  []string
-	NetworkAllow  []string
-	ResourceLimit sandbox.ResourceLimits
+	Root              string
+	AllowedPaths      []string
+	ExtraAllowedPaths []string
+	NetworkAllow      []string
+	ResourceLimit     sandbox.ResourceLimits
 }
 
 // buildSandboxOptsFromConfig builds SandboxOpts from root-level sandbox config.
@@ -382,6 +388,9 @@ func mergeSandboxOpts(base, override *SandboxOpts) *SandboxOpts {
 	if len(override.AllowedPaths) > 0 {
 		out.AllowedPaths = override.AllowedPaths
 	}
+	if len(override.ExtraAllowedPaths) > 0 {
+		out.ExtraAllowedPaths = append(append([]string{}, out.ExtraAllowedPaths...), override.ExtraAllowedPaths...)
+	}
 	if len(override.NetworkAllow) > 0 {
 		out.NetworkAllow = override.NetworkAllow
 	}
@@ -389,6 +398,33 @@ func mergeSandboxOpts(base, override *SandboxOpts) *SandboxOpts {
 		out.ResourceLimit = override.ResourceLimit
 	}
 	return &out
+}
+
+func appendDedupePaths(base []string, extra []string) []string {
+	seen := make(map[string]struct{})
+	var out []string
+	add := func(p string) {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			return
+		}
+		abs, err := filepath.Abs(filepath.Clean(p))
+		if err != nil || abs == "" {
+			return
+		}
+		if _, ok := seen[abs]; ok {
+			return
+		}
+		seen[abs] = struct{}{}
+		out = append(out, abs)
+	}
+	for _, p := range base {
+		add(p)
+	}
+	for _, p := range extra {
+		add(p)
+	}
+	return out
 }
 
 func buildSandboxOptions(projectRoot string, overrides *SandboxOpts) api.SandboxOptions {
@@ -402,6 +438,9 @@ func buildSandboxOptions(projectRoot string, overrides *SandboxOpts) api.Sandbox
 		}
 		if len(overrides.AllowedPaths) > 0 {
 			allowedPaths = overrides.AllowedPaths
+		}
+		if len(overrides.ExtraAllowedPaths) > 0 {
+			allowedPaths = appendDedupePaths(allowedPaths, overrides.ExtraAllowedPaths)
 		}
 		if len(overrides.NetworkAllow) > 0 {
 			networkAllow = overrides.NetworkAllow
