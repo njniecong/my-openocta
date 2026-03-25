@@ -146,14 +146,14 @@ function renderEmployeeCardAction(
       (props.onOpenEmployee && localId) || (props.onEdit && localId) || (props.onDelete && localId),
     );
     if (!hasQuickActions) {
-      return html`<button class="market-card-button market-card-button--installed" type="button" disabled>已安装</button>`;
+      return html`<button class="btn small" type="button" disabled>已安装</button>`;
     }
     return html`
       <div class="market-card-actions">
         ${props.onDelete && localId
           ? html`
               <button
-                class="market-card-button"
+                class="btn small"
                 type="button"
                 @click=${(e: Event) => {
                   e.stopPropagation();
@@ -167,7 +167,7 @@ function renderEmployeeCardAction(
         ${props.onOpenEmployee && localId
           ? html`
               <button
-                class="market-card-button"
+                class="btn small"
                 type="button"
                 @click=${(e: Event) => {
                   e.stopPropagation();
@@ -181,7 +181,7 @@ function renderEmployeeCardAction(
         ${props.onEdit && localId
           ? html`
               <button
-                class="market-card-button market-card-button--primary"
+                class="btn primary small"
                 type="button"
                 @click=${(e: Event) => {
                   e.stopPropagation();
@@ -198,7 +198,7 @@ function renderEmployeeCardAction(
   if (props.onInstall) {
     return html`
       <button
-        class="market-card-button"
+        class="btn small"
         type="button"
         ?disabled=${installing}
         @click=${(e: Event) => {
@@ -212,7 +212,7 @@ function renderEmployeeCardAction(
   }
   return html`
     <a
-      class="market-card-button"
+      class="btn small"
       href=${`/api/v1/employees/${item.id}/download`}
       target="_blank"
       rel="noopener"
@@ -231,13 +231,13 @@ function renderEmployeeDetailActions(props: EmployeeMarketProps, detail: Employe
     return html`
       <div class="market-card-actions">
         ${props.onDelete && localId
-          ? html`<button class="market-card-button" type="button" @click=${() => void props.onDelete!(localId)}>删除</button>`
+          ? html`<button class="btn small" type="button" @click=${() => void props.onDelete!(localId)}>删除</button>`
           : nothing}
         ${props.onOpenEmployee && localId
-          ? html`<button class="market-card-button market-card-button--ghost" type="button" @click=${() => props.onOpenEmployee!(localId)}>会话</button>`
+          ? html`<button class="btn small" type="button" @click=${() => props.onOpenEmployee!(localId)}>会话</button>`
           : nothing}
         ${props.onEdit && localId
-          ? html`<button class="market-card-button market-card-button--ghost" type="button" @click=${() => props.onEdit!(localId)}>编辑</button>`
+          ? html`<button class="btn primary small" type="button" @click=${() => props.onEdit!(localId)}>编辑</button>`
           : nothing}
       </div>
     `;
@@ -245,7 +245,7 @@ function renderEmployeeDetailActions(props: EmployeeMarketProps, detail: Employe
   if (props.onInstall) {
     return html`
       <button
-        class="market-card-button market-card-button--primary"
+        class="btn primary small"
         type="button"
         ?disabled=${props.installingId === String(detail.id)}
         @click=${() => void props.onInstall!(detail.id, detail.category)}
@@ -256,7 +256,7 @@ function renderEmployeeDetailActions(props: EmployeeMarketProps, detail: Employe
   }
   return html`
     <a
-      class="market-card-button market-card-button--primary"
+      class="btn primary small"
       href=${`/api/v1/employees/${detail.id}/download`}
       target="_blank"
       rel="noopener"

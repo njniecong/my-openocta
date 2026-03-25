@@ -142,10 +142,10 @@ function renderSkillCardActions(
     return html`
       <div class="market-card-actions">
         ${props.onDelete
-          ? html`<button class="market-card-button" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onDelete!(folder); }}>删除</button>`
+          ? html`<button class="btn small" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onDelete!(folder); }}>删除</button>`
           : nothing}
         ${props.onToggleEnabled
-          ? html`<button class="market-card-button" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onToggleEnabled!(folder, !enabled); }}>${enabled ? "禁用" : "启用"}</button>`
+          ? html`<button class="btn small" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onToggleEnabled!(folder, !enabled); }}>${enabled ? "禁用" : "启用"}</button>`
           : nothing}
       </div>
     `;
@@ -153,7 +153,7 @@ function renderSkillCardActions(
   if (props.onInstall) {
     return html`
       <button
-        class="market-card-button"
+        class="btn small"
         type="button"
         ?disabled=${installing}
         @click=${(e: Event) => {
@@ -167,7 +167,7 @@ function renderSkillCardActions(
   }
   return html`
     <a
-      class="market-card-button"
+      class="btn small"
       href=${`/api/v1/skills/${encodeURIComponent(folder)}/download`}
       target="_blank"
       rel="noopener"

@@ -76,7 +76,7 @@ export function renderExecApprovalPrompt(state: AppViewState) {
             Always allow
           </button>
           <button
-            class="btn danger"
+            class="btn"
             ?disabled=${state.execApprovalBusy}
             @click=${() => state.handleExecApprovalDecision("deny")}
           >

@@ -50,10 +50,6 @@ const usageStylesString = `
     font-size: 13px;
     min-width: 180px;
   }
-  .usage-filters-inline .btn-sm {
-    padding: 6px 12px;
-    font-size: 14px;
-  }
   .usage-refresh-indicator {
     display: inline-flex;
     align-items: center;
@@ -110,12 +106,6 @@ const usageStylesString = `
   .filter-chip-remove:hover {
     opacity: 1;
   }
-  .filter-clear-btn {
-    padding: 4px 10px !important;
-    font-size: 12px !important;
-    line-height: 1 !important;
-    margin-left: 8px;
-  }
   .usage-query-bar {
     display: grid;
     grid-template-columns: minmax(220px, 1fr) auto;
@@ -147,61 +137,6 @@ const usageStylesString = `
   .usage-query-actions .btn:hover {
     background: var(--bg);
     border-color: var(--border-primary);
-  }
-  .usage-action-btn {
-    height: 34px;
-    padding: 0 14px;
-    border-radius: 999px;
-    font-weight: 600;
-    font-size: 13px;
-    line-height: 1;
-    border: 1px solid var(--border);
-    background: var(--bg-secondary);
-    color: var(--text-regular);
-    box-shadow: none;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-  }
-  .usage-action-btn:hover {
-    background: var(--bg);
-    border-color: var(--border-primary);
-  }
-  .usage-primary-btn {
-    background: #ff4d4d;
-    color: #fff;
-    border-color: #ff4d4d;
-    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.12);
-  }
-  .btn.usage-primary-btn {
-    background: #ff4d4d !important;
-    border-color: #ff4d4d !important;
-    color: #fff !important;
-  }
-  .usage-primary-btn:hover {
-    background: #e64545;
-    border-color: #e64545;
-  }
-  .btn.usage-primary-btn:hover {
-    background: #e64545 !important;
-    border-color: #e64545 !important;
-  }
-  .usage-primary-btn:disabled {
-    background: rgba(255, 77, 77, 0.18);
-    border-color: rgba(255, 77, 77, 0.3);
-    color: #ff4d4d;
-    box-shadow: none;
-    cursor: default;
-    opacity: 1;
-  }
-  .usage-primary-btn[disabled] {
-    background: rgba(255, 77, 77, 0.18) !important;
-    border-color: rgba(255, 77, 77, 0.3) !important;
-    color: #ff4d4d !important;
-    opacity: 1 !important;
-  }
-  .usage-secondary-btn {
-    background: var(--bg-secondary);
-    color: var(--text-regular);
-    border-color: var(--border);
   }
   .usage-query-input {
     width: 100%;
@@ -804,7 +739,7 @@ const usageStylesString = `
     color: var(--text-regular);
   }
   .chart-toggle .toggle-btn.active {
-    background: #ff4d4d;
+    background: var(--accent);
     color: white;
   }
   .chart-toggle.small .toggle-btn {
@@ -1482,20 +1417,6 @@ const usageStylesString = `
     background: var(--bg);
     color: var(--text-regular);
     font-size: 12px;
-  }
-  .sessions-action-btn {
-    height: 28px;
-    padding: 0 10px;
-    border-radius: 8px;
-    font-size: 12px;
-    line-height: 1;
-  }
-  .sessions-action-btn.icon {
-    width: 32px;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
   }
   .sessions-card-hint {
     font-size: 11px;
@@ -3256,7 +3177,7 @@ function renderFilterChips(
       ${
         (selectedDays.length > 0 || selectedHours.length > 0) && selectedSessions.length > 0
           ? html`
-            <button class="btn btn-sm filter-clear-btn" @click=${onClearFilters}>
+            <button class="btn small" @click=${onClearFilters}>
               ${t("usageClearFilters")}
             </button>
           `
@@ -3834,7 +3755,7 @@ function renderSessionsCard(
           </select></span>
         </label>
         <button
-          class="btn btn-sm sessions-action-btn icon"
+          class="btn small"
           @click=${() => onSessionSortDirChange(sessionSortDir === "desc" ? "asc" : "desc")}
           title=${sessionSortDir === "desc" ? t("usageDescending") : t("usageAscending")}
         >
@@ -3843,7 +3764,7 @@ function renderSessionsCard(
         ${
           selectedCount > 0
             ? html`
-                <button class="btn btn-sm sessions-action-btn sessions-clear-btn" @click=${onClearSessions}>
+                <button class="btn small sessions-clear-btn" @click=${onClearSessions}>
                   ${t("usageClearSelection")}
                 </button>
               `
@@ -4600,7 +4521,7 @@ function renderSessionLogsCompact(
     <div class="session-logs-compact">
       <div class="session-logs-header">
         <span>${t("usageConversation")} <span style="font-weight: normal; color: var(--text-muted);">(${displayedCount} ${t("usageMessagesCount")})</span></span>
-        <button class="btn btn-sm usage-action-btn usage-secondary-btn" @click=${onToggleExpandedAll}>
+        <button class="btn small" @click=${onToggleExpandedAll}>
           ${expandedAll ? t("usageCollapseAll") : t("usageExpandAll")}
         </button>
       </div>
@@ -4650,7 +4571,7 @@ function renderSessionLogsCompact(
           .value=${filters.query}
           @input=${(event: Event) => onFilterQueryChange((event.target as HTMLInputElement).value)}
         /></span>
-        <button class="btn btn-sm usage-action-btn usage-secondary-btn" @click=${onFilterClear}>
+        <button class="btn small" @click=${onFilterClear}>
           ${t("usageClear")}
         </button>
       </div>
@@ -5054,7 +4975,7 @@ export function renderUsage(props: UsageProps) {
         <div class="usage-filter-popover">
           <div class="usage-filter-actions">
             <button
-              class="btn btn-sm"
+              class="btn small"
               @click=${(e: Event) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -5065,7 +4986,7 @@ export function renderUsage(props: UsageProps) {
               Select All
             </button>
             <button
-              class="btn btn-sm"
+              class="btn small"
               @click=${(e: Event) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -5241,7 +5162,7 @@ export function renderUsage(props: UsageProps) {
           <div class="usage-presets">
             ${datePresets.map(
               (preset) => html`
-                <button class="btn btn-sm" @click=${() => applyPreset(preset.days)}>
+                <button class="btn small" @click=${() => applyPreset(preset.days)}>
                   ${preset.label}
                 </button>
               `,
@@ -5284,7 +5205,7 @@ export function renderUsage(props: UsageProps) {
             </button>
           </div>
           <button
-            class="btn btn-sm usage-action-btn usage-primary-btn"
+            class="btn small"
             @click=${props.onRefresh}
             ?disabled=${props.loading}
           >
@@ -5311,7 +5232,7 @@ export function renderUsage(props: UsageProps) {
           /></span>
           <div class="usage-query-actions">
             <button
-              class="btn btn-sm usage-action-btn usage-secondary-btn"
+              class="btn small"
               @click=${props.onApplyQuery}
               ?disabled=${props.loading || (!hasDraftQuery && !hasQuery)}
             >
@@ -5319,7 +5240,7 @@ export function renderUsage(props: UsageProps) {
             </button>
             ${
               hasDraftQuery || hasQuery
-                ? html`<button class="btn btn-sm usage-action-btn usage-secondary-btn" @click=${props.onClearQuery}>${t("usageClear")}</button>`
+                ? html`<button class="btn small" @click=${props.onClearQuery}>${t("usageClear")}</button>`
                 : nothing
             }
             <span class="usage-query-hint">

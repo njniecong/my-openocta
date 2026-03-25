@@ -63,7 +63,7 @@ export function renderAbout(props: AboutViewProps) {
           </p>
           <button type="button" class="btn btn--danger-outline" @click=${props.onOpenUninstallModal}>
             <span class="btn__icon" aria-hidden="true">${icons.trash}</span>
-            卸载 OpenOcta…
+            卸载 OpenOcta
           </button>
         </section>
       </div>

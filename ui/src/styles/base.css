@@ -21,9 +21,9 @@
   --warn: #f79532;
   --warn-muted: rgba(247, 149, 50, 0.75);
   --warn-subtle: rgba(247, 149, 50, 0.1);
-  --danger: #e12828;
+  /* --danger: #e12828;
   --danger-muted: rgba(225, 40, 40, 0.75);
-  --danger-subtle: rgba(225, 40, 40, 0.1);
+  --danger-subtle: rgba(225, 40, 40, 0.1); */
   --info: #2962ff;
   --info-muted: rgba(41, 98, 255, 0.75);
   --info-subtle: rgba(41, 98, 255, 0.1);
@@ -75,9 +75,9 @@
   --warn: #f79532;
   --warn-muted: rgba(247, 149, 50, 0.75);
   --warn-subtle: rgba(247, 149, 50, 0.1);
-  --danger: #e12828;
+  /* --danger: #e12828;
   --danger-muted: rgba(225, 40, 40, 0.75);
-  --danger-subtle: rgba(225, 40, 40, 0.1);
+  --danger-subtle: rgba(225, 40, 40, 0.1); */
   --info: #2962ff;
   --info-muted: rgba(41, 98, 255, 0.75);
   --info-subtle: rgba(41, 98, 255, 0.1);

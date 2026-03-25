@@ -36,24 +36,6 @@
   position: relative;
 }
 
-.emp-search__input {
-  width: 100%;
-  padding: 8px 12px 8px 36px;
-  border-radius: 4px;
-  border: 1px solid transparent;
-  background: var(--bg);
-  color: var(--text-regular);
-  font-size: 14px;
-}
-
-.emp-search__input:focus {
-  outline: none;
-}
-
-.emp-search__input::placeholder {
-  color: var(--text-secondary);
-}
-
 .emp-search__icon {
   position: absolute;
   left: 12px;
@@ -256,10 +238,8 @@
 }
 
 .content--catalog .emp-search__input {
-  height: 32px;
   padding: 0 10px 0 30px;
-  color: var(--text-primary);
-  font-size: 13px;
+  background: var(--bg);
 }
 
 .content--catalog .emp-search__icon {
@@ -337,56 +317,6 @@
   flex-wrap: wrap;
 }
 
-.market-card-button {
-  height: 28px;
-  padding: 0 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 7px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text-regular);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    border-color var(--duration-fast) ease,
-    color var(--duration-fast) ease,
-    background var(--duration-fast) ease;
-}
-
-.market-card-button:hover:not(:disabled) {
-  border-color: var(--border);
-  color: var(--text-primary);
-  background: var(--bg);
-}
-
-.market-card-button:disabled {
-  cursor: default;
-  opacity: 1;
-}
-
-.market-card-button--primary {
-  border-color: transparent;
-  background: var(--accent);
-  color: #ffffff;
-}
-
-.market-card-button--primary:hover:not(:disabled) {
-  background: var(--accent);
-  color: #ffffff;
-}
-
-.market-card-button--ghost {
-  background: var(--bg-content);
-}
-
-.market-card-button--installed {
-  background: var(--bg-content);
-  color: var(--text-secondary);
-}
-
 .market-card-meta {
   display: flex;
   flex-wrap: wrap;
@@ -414,26 +344,3 @@
   color: var(--text-secondary);
 }
 
-.content--catalog .emp-toolbar__actions .btn {
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text-regular);
-}
-
-.content--catalog .emp-toolbar__actions .btn:hover {
-  border-color: var(--border);
-  background: var(--bg);
-  color: var(--text-primary);
-}
-
-.content--catalog .emp-toolbar__actions .btn.primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #ffffff;
-}
-
-.content--catalog .emp-toolbar__actions .btn.primary:hover {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #ffffff;
-}

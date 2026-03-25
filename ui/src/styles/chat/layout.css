@@ -425,6 +425,7 @@
 
 .chat-compose__model-select select {
   border-radius: 30px;
+  color: var(--text-regular);
 }
 
 .chat-attachment__file {
@@ -539,9 +540,10 @@
   resize: none;
   white-space: pre-wrap;
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.5;
   box-shadow: none;
+  font-weight: normal;
 }
 
 .chat-compose .chat-compose__field textarea::placeholder {

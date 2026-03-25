@@ -227,9 +227,9 @@ describe("catalog pages", () => {
     const cardButtons = Array.from(firstCardActions?.querySelectorAll("button") ?? []);
     const labels = cardButtons.map((button) => button.textContent?.trim());
     expect(labels).toEqual(["删除", "会话", "编辑"]);
-    expect(cardButtons.find((button) => button.textContent?.trim() === "会话")?.className).toBe("market-card-button");
-    expect(cardButtons.find((button) => button.textContent?.trim() === "编辑")?.className).toBe("market-card-button market-card-button--primary");
-    expect(cardButtons.find((button) => button.textContent?.trim() === "删除")?.className).toBe("market-card-button");
+    expect(cardButtons.find((button) => button.textContent?.trim() === "会话")?.className).toBe("btn small");
+    expect(cardButtons.find((button) => button.textContent?.trim() === "编辑")?.className).toBe("btn primary small");
+    expect(cardButtons.find((button) => button.textContent?.trim() === "删除")?.className).toBe("btn small");
 
     const talkButton = cardButtons.find((button) => button.textContent?.trim() === "会话");
     talkButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -258,8 +258,8 @@ describe("catalog pages", () => {
     expect(container.textContent).not.toContain("已禁用");
     expect(container.querySelector(".market-card-status")).toBeNull();
     const actionButtons = Array.from(container.querySelectorAll(".emp-card__actions button"));
-    expect(actionButtons.find((button) => button.textContent?.trim() === "删除")?.className).toBe("market-card-button");
-    expect(actionButtons.find((button) => button.textContent?.trim() === "启用")?.className).toBe("market-card-button");
+    expect(actionButtons.find((button) => button.textContent?.trim() === "删除")?.className).toBe("btn small");
+    expect(actionButtons.find((button) => button.textContent?.trim() === "启用")?.className).toBe("btn small");
 
     const counts = computeSkillLibraryCategories(skillItems(), "ali", "__all__");
     expect(counts.counts.get("__all__")).toBe(1);
@@ -339,9 +339,9 @@ describe("catalog pages", () => {
     expect(container.textContent).not.toContain("stdio");
     expect(container.querySelector(".market-card-status")).toBeNull();
     const actionButtons = Array.from(container.querySelectorAll(".emp-card__actions button"));
-    expect(actionButtons.find((button) => button.textContent?.trim() === "删除")?.className).toBe("market-card-button");
-    expect(actionButtons.find((button) => button.textContent?.trim() === "禁用")?.className).toBe("market-card-button");
-    expect(actionButtons.find((button) => button.textContent?.trim() === "编辑")?.className).toBe("market-card-button market-card-button--primary");
+    expect(actionButtons.find((button) => button.textContent?.trim() === "删除")?.className).toBe("btn small");
+    expect(actionButtons.find((button) => button.textContent?.trim() === "禁用")?.className).toBe("btn small");
+    expect(actionButtons.find((button) => button.textContent?.trim() === "编辑")?.className).toBe("btn primary small");
     expect(container.querySelector(".emp-detail-modal")).not.toBeNull();
 
     const counts = computeToolLibraryCategories(toolItems(), "prom");

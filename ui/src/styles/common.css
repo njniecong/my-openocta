@@ -13,6 +13,7 @@
 .input > input,
 .select > select,
 .textarea > textarea {
+  width: 100%;
   height: 32px;
   padding: 5px 10px;
   border: 1px solid transparent;
@@ -57,6 +58,22 @@
 }
 .textarea > textarea {
   resize: vertical;
+}
+.small {
+  &.input > input,
+  &.select > select,
+  &.textarea > textarea {
+    height: 28px;
+    padding: 3px 8px;
+  }
+  &.select {
+    > select {
+      padding-right: 16px;
+    }
+    &::after {
+      right: 8px;
+    }
+  }
 }
 .checkbox,
 .radio {
@@ -190,17 +207,22 @@
   height: 32px;
   gap: 4px;
   border: none;
-  background: #fff;
-  padding: 2px 16px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-primary);
+  padding: 2px 15px;
   border-radius: 4px;
   font-size: 13px;
   line-height: 14px;
-  font-weight: 500;
+  font-weight: normal;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     border-color var(--duration-fast) var(--ease-out),
-    background var(--duration-fast) var(--ease-out),
-    transform var(--duration-fast) var(--ease-out);
+    background var(--duration-fast) var(--ease-out);
+  &:hover {
+    border-color: var(--border-primary);
+  }
 }
 
 .btn svg {
@@ -236,18 +258,20 @@
   background: rgba(239, 68, 68, 0.15);
 }
 
-.btn--sm {
-  padding: 6px 10px;
-  font-size: 12px;
+.btn--sm,
+.btn.small {
+  height: 28px;
+  padding: 0 8px;
 }
 
 .btn--danger-outline {
-  border-color: color-mix(in srgb, var(--danger, #c62828) 45%, var(--border));
-  color: var(--danger, #c62828);
+  border-color: color-mix(in srgb, var(--danger, #e12828) 45%, var(--border));
+  color: var(--danger, #e12828);
 }
 
 .btn--danger-outline:hover {
-  background: color-mix(in srgb, var(--danger, #c62828) 8%, transparent);
+  border-color: color-mix(in srgb, var(--danger, #e12828) 45%, var(--border));
+  background: color-mix(in srgb, var(--danger, #e12828) 8%, transparent);
 }
 
 .btn:disabled {
@@ -299,6 +323,11 @@
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
+}
+
+.field .checkbox,
+.field .radio {
+  height: 32px;
 }
 
 .form-grid {

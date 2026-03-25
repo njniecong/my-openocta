@@ -1043,9 +1043,10 @@
   border-radius: var(--radius-sm);
   padding: 2px 6px;
   width: fit-content;
+  color: var(--text-secondary);
 }
 
-.log-level.trace,
+/* .log-level.trace,
 .log-level.debug {
   color: var(--text-secondary);
 }
@@ -1085,7 +1086,7 @@
 .log-chip.fatal {
   color: var(--danger);
   border-color: var(--danger-subtle);
-}
+} */
 
 .log-subsystem {
   color: var(--text-secondary);
@@ -1945,7 +1946,7 @@
 }
 
 .about-section--danger {
-  border-left: 3px solid var(--danger, #c62828);
+  border-left: 3px solid var(--danger, #e12828);
 }
 
 .about-uninstall-modal {

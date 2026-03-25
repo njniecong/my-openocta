@@ -194,16 +194,14 @@ export function renderWeWorkCard(params: {
 
       <div class="row" style="margin-top: 14px; flex-wrap: wrap;">
         <button
-          class="btn danger"
-          style="background: var(--danger); color: #fff; border-color: transparent;"
+          class="btn primary"
           ?disabled=${qrBusy}
           @click=${() => props.onWeWorkQrStart()}
         >
           ${qrBusy ? t("channelWeWorkQrWorking") : t("channelWeWorkQrStart")}
         </button>
         <button
-          class="btn danger"
-          style="background: var(--danger); color: #fff; border-color: transparent;"
+          class="btn primary"
           @click=${() => props.onChannelSelect("wework")}
         >
           ${t("channelsConfigure")}

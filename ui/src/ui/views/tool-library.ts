@@ -138,13 +138,13 @@ function renderToolCardActions(
     return html`
       <div class="market-card-actions">
         ${props.onDelete
-          ? html`<button class="market-card-button" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onDelete!(serverKey); }}>删除</button>`
+          ? html`<button class="btn small" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onDelete!(serverKey); }}>删除</button>`
           : nothing}
         ${props.onToggleEnabled
-          ? html`<button class="market-card-button" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onToggleEnabled!(serverKey, !enabled); }}>${enabled ? "禁用" : "启用"}</button>`
+          ? html`<button class="btn small" type="button" @click=${(e: Event) => { e.stopPropagation(); void props.onToggleEnabled!(serverKey, !enabled); }}>${enabled ? "禁用" : "启用"}</button>`
           : nothing}
         ${props.onEdit
-          ? html`<button class="market-card-button market-card-button--primary" type="button" @click=${(e: Event) => { e.stopPropagation(); props.onEdit!(serverKey); }}>编辑</button>`
+          ? html`<button class="btn primary small" type="button" @click=${(e: Event) => { e.stopPropagation(); props.onEdit!(serverKey); }}>编辑</button>`
           : nothing}
       </div>
     `;
@@ -152,7 +152,7 @@ function renderToolCardActions(
   if (props.onInstall) {
     return html`
       <button
-        class="market-card-button"
+        class="btn small"
         type="button"
         ?disabled=${installing}
         @click=${(e: Event) => {
@@ -166,7 +166,7 @@ function renderToolCardActions(
   }
   return html`
     <a
-      class="market-card-button"
+      class="btn small"
       href=${`/api/v1/mcps/${item.id}/download`}
       target="_blank"
       rel="noopener"

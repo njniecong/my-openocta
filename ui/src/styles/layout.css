@@ -916,13 +916,6 @@ button.nav-item {
   font-weight: 600;
 }
 
-.btn.small {
-  height: 30px;
-  padding: 0 10px;
-  border-radius: 10px;
-  font-size: 12px;
-}
-
 .market-detail {
   scroll-margin-top: 80px;
 }

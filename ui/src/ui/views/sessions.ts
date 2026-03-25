@@ -222,7 +222,7 @@ export function renderSessions(props: SessionsProps) {
                     全部不选
                   </button>
                   <button
-                    class="btn danger"
+                    class="btn"
                     ?disabled=${props.loading || props.selectedKeys.length === 0}
                     @click=${() => props.onBulkDelete(props.selectedKeys)}
                   >
@@ -395,7 +395,7 @@ function renderRow(
         </select></span>
       </div>
       <div>
-        <button class="btn danger" ?disabled=${disabled} @click=${() => onDelete(row.key)}>
+        <button class="btn" ?disabled=${disabled} @click=${() => onDelete(row.key)}>
           ${t("commonDelete")}
         </button>
       </div>

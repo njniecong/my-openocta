@@ -94,6 +94,7 @@
 .tutorials-page .emp-search__input {
   height: 28px;
   background: var(--bg-content);
+  border-color: transparent;
 }
 
 .tutorials-page {
