@@ -1427,7 +1427,6 @@ button.nav-item {
   border: none;
   background: transparent;
   font-size: 14px;
-  font-weight: 500;
   color: var(--text-regular);
   cursor: pointer;
   white-space: nowrap;
@@ -1533,7 +1532,7 @@ button.nav-item {
 }
 
 @media (max-width: 1400px) {
-  .topbar-status .pill--version .topbar-status__label,
+  /* .topbar-status .pill--version .topbar-status__label,
   .topbar-status .pill--health .topbar-status__label,
   .topbar-status .pill--link .topbar-link__label {
     display: none;
@@ -1549,7 +1548,7 @@ button.nav-item {
 
   .topbar-status .pill--health {
     gap: 6px;
-  }
+  } */
 }
 
 @media (max-width: 1200px) {

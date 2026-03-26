@@ -328,32 +328,6 @@ export function renderApp(state: AppViewState) {
               <span class="topbar-link__label">GitHub</span>
             </button>
           </div>
-          <div class="pill pill--link">
-            <button
-              type="button"
-              title="OpenOcta 官网（新窗口打开）"
-              class="topbar-link"
-              @click=${() =>
-                void openExternalUrl("https://www.openocta.com/", {
-                  gatewayHost: state.settings.gatewayUrl,
-                  gatewayToken: state.settings.token,
-                })}
-            >
-              <img
-                src=${basePath ? `${basePath}/favicon.ico` : "/favicon.ico"}
-                alt=""
-                class="topbar-link__img"
-                width="16"
-                height="16"
-              />
-              <span class="topbar-link__label">官网</span>
-            </button>
-          </div>
-          <div class="pill pill--health">
-            <span class="statusDot ${state.connected ? "ok" : ""}"></span>
-            <span class="topbar-status__label">Health</span>
-            <span class="topbar-status__value">${state.connected ? "OK" : "Offline"}</span>
-          </div>
         </div>
       </header>
       ${state.tab === "tutorials"

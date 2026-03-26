@@ -170,7 +170,6 @@
   border-radius: var(--radius-full);
   background: var(--bg-content);
   font-size: 13px;
-  font-weight: 500;
   transition: border-color var(--duration-fast) ease;
 }
 
