@@ -122,7 +122,7 @@ export function renderChannelConfigSection(params: { channelId: string; props: C
   const { channelId, props } = params;
   const disabled = props.configSaving;
   return html`
-    <div style="margin-top: 16px;">
+    <div>
       ${renderChannelConfigForm({
         channelId,
         configValue: props.configForm,

@@ -41,7 +41,7 @@ export function renderChannels(props: ChannelsProps) {
 
     ${renderChannelConfigPanel(props)}
 
-    <section class="card" style="margin-top: 18px;">
+    <section class="card">
       <div class="row" style="justify-content: space-between;">
         <div>
           <div class="card-title">${t("channelsHealth")}</div>

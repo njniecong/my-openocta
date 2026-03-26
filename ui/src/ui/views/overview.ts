@@ -219,7 +219,7 @@ export function renderOverview(props: OverviewProps) {
       </div>
     </section>
 
-    <section class="grid grid-cols-3" style="margin-top: 18px;">
+    <section class="grid grid-cols-3">
       <div class="card stat-card">
         <div class="stat-label">${t("overviewInstances")}</div>
         <div class="stat-value">${props.presenceCount}</div>
@@ -239,7 +239,7 @@ export function renderOverview(props: OverviewProps) {
       </div>
     </section>
 
-    <section class="card" style="margin-top: 18px;">
+    <section class="card">
       <div class="card-title">${t("overviewNotes")}</div>
       <div class="card-sub">${t("overviewNotesSub")}</div>
       <div class="note-grid" style="margin-top: 14px;">

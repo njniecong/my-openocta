@@ -146,41 +146,47 @@ export function renderWeWorkCard(params: {
       <div class="card-sub">${t("channelWeWorkSub")}</div>
       ${accountCountLabel}
 
-      <div class="status-list" style="margin-top: 16px;">
-        <div>
-          <span class="label">${t("channelConfigured")}</span>
-          <span>${wework?.configured ? t("commonYes") : t("commonNo")}</span>
-        </div>
-        <div>
-          <span class="label">${t("channelWeWorkTransport")}</span>
-          <span>${probe?.transport ?? "wecom_aibot_ws"}</span>
-        </div>
-        <div>
-          <span class="label">${t("channelWeWorkBotId")}</span>
-          <span>${acc?.appId ? acc.appId : t("commonNA")}</span>
-        </div>
-        <div>
-          <span class="label">${t("channelRunning")}</span>
-          <span>${wework?.running ? t("commonYes") : t("commonNo")}</span>
-        </div>
-        <div>
-          <span class="label">${t("channelConnected")}</span>
-          <span
-            >${(() => {
-              const c = wework?.connected ?? acc?.connected;
-              if (c === true) {
-                return t("commonYes");
-              }
-              if (c === false) {
-                return t("commonNo");
-              }
-              return t("commonNA");
-            })()}</span
-          >
-        </div>
-        <div>
-          <span class="label">${t("channelLastInbound")}</span>
-          <span>${acc?.lastInboundAt ? formatAgo(acc.lastInboundAt) : t("commonNA")}</span>
+      <div class="account-card-list">
+        <div class="account-card">
+          <div class="account-card-header">
+            <div class="account-card-title">${acc?.name || t("channelWeWork")}</div>
+            <div class="account-card-id">${acc?.appId ?? acc?.accountId ?? t("commonNA")}</div>
+          </div>
+          <div class="status-list account-card-status">
+            <div>
+              <span class="label">${t("channelConfigured")}</span>
+              <span>${wework?.configured ? t("commonYes") : t("commonNo")}</span>
+            </div>
+            <div>
+              <span class="label">${t("channelWeWorkTransport")}</span>
+              <span>${probe?.transport ?? "wecom_aibot_ws"}</span>
+            </div>
+            <div>
+              <span class="label">${t("channelWeWorkBotId")}</span>
+              <span>${acc?.appId ? acc.appId : t("commonNA")}</span>
+            </div>
+            <div>
+              <span class="label">${t("channelRunning")}</span>
+              <span>${wework?.running ? t("commonYes") : t("commonNo")}</span>
+            </div>
+            <div>
+              <span class="label">${t("channelConnected")}</span>
+              <span>${(() => {
+                const c = wework?.connected ?? acc?.connected;
+                if (c === true) {
+                  return t("commonYes");
+                }
+                if (c === false) {
+                  return t("commonNo");
+                }
+                return t("commonNA");
+              })()}</span>
+            </div>
+            <div>
+              <span class="label">${t("channelLastInbound")}</span>
+              <span>${acc?.lastInboundAt ? formatAgo(acc.lastInboundAt) : t("commonNA")}</span>
+            </div>
+          </div>
         </div>
       </div>
 
