@@ -553,7 +553,7 @@ export function renderApp(state: AppViewState) {
             { tab: "skillLibrary", label: "技能库" },
             { tab: "toolLibrary", label: "工具库" },
             { tab: "tutorials", label: "教程" },
-            { tab: "community", label: "社区", href: "https://community.databuff.com/" },
+            { tab: "community", label: "社区", href: "https://community.databuff.com/c/10-category/10" },
             { tab: "config", label: "配置" },
           ].map((item) => {
             const tab = (item as any).tab;
