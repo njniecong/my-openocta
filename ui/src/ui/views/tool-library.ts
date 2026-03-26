@@ -51,6 +51,7 @@ export type ToolLibraryProps = {
   disabledMcpKeys?: Set<string>;
   installingId?: number | null;
   onInstall?: (id: number | string, category?: string) => Promise<void>;
+  /** 删除全局 MCP：由宿主调用网关 `mcp.servers.delete`（或离线时 config.patch）。 */
   onDelete?: (serverKey: string) => Promise<void>;
   onToggleEnabled?: (serverKey: string, enabled: boolean) => Promise<void>;
   /** 修改 MCP 配置（serverKey 为 mcp.servers 中的 key） */
@@ -82,6 +83,16 @@ function splitCsv(raw?: string) {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+/** serverKey from API map even when list `id` is number vs string (JSON mismatch). */
+function lookupInstalledServerKey(
+  map: Map<number | string, string> | undefined,
+  id: number | string,
+): string | undefined {
+  if (!map) return undefined;
+  const n = typeof id === "string" ? Number(id) : id;
+  return map.get(id) ?? map.get(String(id)) ?? (Number.isFinite(n) ? map.get(n) : undefined);
 }
 
 export type ToolLibraryCategoryInfo = {
@@ -397,7 +408,7 @@ export function renderToolLibrary(props: ToolLibraryProps) {
                     ${installedItems.map((it) => {
                       const active = props.selectedId === it.id;
                       const logoUrl = resolveLogoUrl(it.logo_url);
-                      const serverKey = props.installedMcpMap?.get(it.id);
+                      const serverKey = lookupInstalledServerKey(props.installedMcpMap, it.id);
                       const disabled = serverKey ? (props.disabledMcpKeys?.has(serverKey) ?? false) : false;
                       const enabled = !disabled;
                       const installing = props.installingId === it.id;
@@ -441,7 +452,7 @@ export function renderToolLibrary(props: ToolLibraryProps) {
                                         const active = props.selectedId === it.id;
                                         const logoUrl = resolveLogoUrl(it.logo_url);
                                         const installed = props.installedRemoteIds?.has(String(it.id)) ?? false;
-                                        const serverKey = props.installedMcpMap?.get(it.id);
+                                        const serverKey = lookupInstalledServerKey(props.installedMcpMap, it.id);
                                         const disabled = serverKey ? (props.disabledMcpKeys?.has(serverKey) ?? false) : false;
                                         const enabled = !disabled;
                                         const installing = props.installingId === it.id;
@@ -491,7 +502,7 @@ export function renderToolLibrary(props: ToolLibraryProps) {
                         ${(() => {
                           const id = props.selectedDetail?.id ?? 0;
                           const installed = props.installedRemoteIds?.has(String(id)) ?? false;
-                          const serverKey = props.installedMcpMap?.get(id);
+                          const serverKey = lookupInstalledServerKey(props.installedMcpMap, id);
                           const disabled = serverKey ? (props.disabledMcpKeys?.has(serverKey) ?? false) : false;
                           const enabled = !disabled;
                           const installing = props.installingId === id;

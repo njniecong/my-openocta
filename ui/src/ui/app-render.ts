@@ -62,6 +62,151 @@ function extractEmployeeIdFromSessionKey(key: string): string | null {
   return null;
 }
 
+/** 侧栏搜索：汇总 key、展示名、副标题及网关返回的标签类字段（label、channel、origin 等） */
+function buildSessionSidebarSearchHaystack(
+  s: Record<string, unknown>,
+  key: string,
+  displayName: string,
+  subtitle: string,
+): string {
+  const parts = [key, displayName, subtitle];
+  const pushStr = (v: unknown) => {
+    if (v == null) return;
+    if (typeof v === "string") {
+      const t = v.trim();
+      if (t) parts.push(t);
+      return;
+    }
+    if (typeof v === "number" || typeof v === "boolean") {
+      parts.push(String(v));
+    }
+  };
+  pushStr(s.label);
+  pushStr(s.displayName);
+  pushStr(s.sessionId);
+  pushStr(s.derivedTitle);
+  pushStr(s.kind);
+  pushStr(s.channel);
+  pushStr(s.subject);
+  pushStr(s.groupChannel);
+  pushStr(s.space);
+  pushStr(s.chatType);
+  pushStr(s.lastChannel);
+  pushStr(s.lastTo);
+  pushStr(s.lastMessagePreview);
+  const origin = s.origin;
+  if (origin && typeof origin === "object" && !Array.isArray(origin)) {
+    for (const v of Object.values(origin as Record<string, unknown>)) {
+      pushStr(v);
+    }
+  }
+  return parts.join("\u0001").toLowerCase();
+}
+
+function sessionSidebarHaystackMatches(haystack: string, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const tokens = q.split(/\s+/).filter(Boolean);
+  return tokens.every((t) => haystack.includes(t));
+}
+
+/** 侧栏会话 ⋯ 菜单预估高度（用于贴底向上展开） */
+const SESSION_OVERFLOW_FLYOUT_EST_HEIGHT = 132;
+const SESSION_OVERFLOW_GAP = 6;
+
+function positionSessionOverflowFromButtonRect(r: DOMRect): { top: number; right: number } {
+  const pad = 8;
+  let top = r.bottom + SESSION_OVERFLOW_GAP;
+  if (top + SESSION_OVERFLOW_FLYOUT_EST_HEIGHT > window.innerHeight - pad) {
+    top = Math.max(pad, r.top - SESSION_OVERFLOW_FLYOUT_EST_HEIGHT - SESSION_OVERFLOW_GAP);
+  }
+  return { top, right: window.innerWidth - r.right };
+}
+
+function renderSessionOverflowFlyout(state: AppViewState, basePath: string) {
+  const ov = state.sessionOverflow;
+  if (!ov) {
+    return nothing;
+  }
+  const key = ov.key;
+  const isMainSession = key === "agent.main.main";
+  const close = () => {
+    state.sessionOverflow = null;
+  };
+  const shareUrlForKey = () => {
+    const path = pathForTab("message", basePath);
+    const u = new URL(path, window.location.origin);
+    u.searchParams.set("session", key);
+    return u.toString();
+  };
+  return html`
+    <div class="session-overflow-backdrop" @click=${close}></div>
+    <div
+      class="session-overflow-flyout"
+      style="top: ${ov.top}px; right: ${ov.right}px;"
+      role="menu"
+      aria-label="会话操作"
+      @click=${(e: Event) => e.stopPropagation()}
+    >
+      <button
+        type="button"
+        role="menuitem"
+        class="session-item__overflow-item"
+        @click=${() => {
+          close();
+          state.sessionEditingKey = key;
+        }}
+      >
+        重命名
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        class="session-item__overflow-item"
+        @click=${async () => {
+          close();
+          const url = shareUrlForKey();
+          try {
+            await navigator.clipboard.writeText(url);
+            window.alert("会话链接已复制到剪贴板");
+          } catch {
+            window.prompt("无法自动复制，请手动复制链接：", url);
+          }
+        }}
+      >
+        分享链接
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        class="session-item__overflow-item session-item__overflow-item--danger"
+        ?disabled=${isMainSession}
+        @click=${async () => {
+          close();
+          if (isMainSession) return;
+          const wasActive = state.sessionKey === key;
+          await deleteSession(state, key);
+          if (wasActive) {
+            const nextKey =
+              state.sessionsResult?.sessions?.[0]?.key ?? "agent.main.main";
+            state.sessionKey = nextKey;
+            state.chatMessage = "";
+            state.resetToolStream();
+            state.applySettings({
+              ...state.settings,
+              sessionKey: nextKey,
+              lastActiveSessionKey: nextKey,
+            });
+            await Promise.all([loadChatHistory(state), refreshChatAvatar(state)]);
+          }
+        }}
+      >
+        删除
+      </button>
+    </div>
+  `;
+}
+
 // Module-scope debounce for usage date changes (avoids type-unsafe hacks on state object)
 let usageDateDebounceTimeout: number | null = null;
 const debouncedLoadUsage = (state: UsageState) => {
@@ -275,6 +420,37 @@ export function renderApp(state: AppViewState) {
   return html`
     <div class="shell ${isChat ? "shell--chat" : ""} ${isCatalogArea ? "shell--catalog" : ""} ${state.tab === "tutorials" ? "shell--tutorials" : ""} ${chatFocus ? "shell--chat-focus" : ""} ${isSideNavCollapsed ? "shell--nav-collapsed" : ""} ${state.onboarding ? "shell--onboarding" : ""}">
       <header class="topbar">
+        ${
+          state.approvalBannerVisible
+            ? html`
+                <div class="approval-banner" role="status">
+                  <span class="approval-banner__icon" aria-hidden="true">${icons.zap}</span>
+                  <span class="approval-banner__text">
+                    有
+                    ${state.approvalBannerPendingCount}
+                    条敏感命令待人工审批
+                  </span>
+                  <button
+                    type="button"
+                    class="btn btn--sm approval-banner__action"
+                    @click=${() => state.setTab("sandbox")}
+                  >
+                    去处理
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn--icon approval-banner__close"
+                    aria-label="关闭提示"
+                    title="关闭（仍有新待审批时会再次提示）"
+                    @click=${() => state.dismissApprovalBanner()}
+                  >
+                    ${icons.x}
+                  </button>
+                </div>
+              `
+            : nothing
+        }
+        <div class="topbar__main">
         <div class="topbar-left">
           <div class="brand">
             <div class="brand-logo">
@@ -355,14 +531,37 @@ export function renderApp(state: AppViewState) {
             </button>
           </div>
         </div>
+        </div>
       </header>
       ${state.tab === "tutorials"
         ? nothing
-        : html`<aside class="nav ${isCatalogArea ? "nav--catalog" : ""} ${isMessagePage ? "nav--massage" : ""} ${isScheduledTasks || isConfigArea ? "nav--grouped" : ""} ${isSideNavCollapsed ? "nav--collapsed" : ""}">
+        : html`<aside
+            class="nav ${isCatalogArea ? "nav--catalog" : ""} ${isMessagePage ? "nav--massage" : ""} ${isScheduledTasks || isConfigArea ? "nav--grouped" : ""} ${isSideNavCollapsed ? "nav--collapsed" : ""}"
+            @scroll=${() => {
+              if (state.sessionOverflow) {
+                state.sessionOverflow = null;
+              }
+            }}
+          >
         ${
           isMessagePage
             ? html`
                 <div class="session-sidebar">
+                  <div class="session-search">
+                    <input
+                      class="session-search__input"
+                      type="search"
+                      autocomplete="off"
+                      spellcheck="false"
+                      placeholder="搜索名称、标签或预览…"
+                      aria-label="搜索会话"
+                      .value=${state.sessionSidebarQuery}
+                      @input=${(e: Event) => {
+                        state.sessionSidebarQuery = (e.target as HTMLInputElement).value;
+                      }}
+                    />
+                    <span class="session-search__icon" aria-hidden="true">${icons.search}</span>
+                  </div>
                   <button
                     class="session-new btn primary"
                     type="button"
@@ -390,41 +589,80 @@ export function renderApp(state: AppViewState) {
 
                   <div class="session-list">
                     ${
-                      (state.sessionsResult?.sessions ?? []).map((s) => {
-                        const key = (s as any).key ?? (s as any).sessionId ?? "";
-                        const isCustom = key.toLowerCase().startsWith("custom:");
-                        const employeeId = isCustom ? null : extractEmployeeIdFromSessionKey(key);
-                        const emp = employeeId
-                          ? state.digitalEmployees?.find((e) => e.id === employeeId)
-                          : null;
-                        const displayName =
-                          emp?.name ||
-                          ((s as any).origin && (((s as any).origin.label || (s as any).origin.from || (s as any).origin.to) as string)) ||
-                          (s as any).label ||
-                          (s as any).displayName ||
-                          (s as any).sessionId ||
-                          key ||
-                          "会话";
-                        const subtitle = (s as any).lastMessagePreview?.trim() || "";
-                        const active = key && state.sessionKey === key;
-                        const canEdit = isCustom;
-                        const isEditing = canEdit && state.sessionEditingKey === key;
-                        const saveEdit = async (newLabel: string) => {
-                          if (!key || !newLabel.trim()) {
-                            state.sessionEditingKey = null;
-                            return;
-                          }
-                          await patchSession(state, key, { label: newLabel.trim() });
-                          state.sessionEditingKey = null;
-                        };
-                        return html`
+                      (() => {
+                        const q = state.sessionSidebarQuery;
+                        const rows = (state.sessionsResult?.sessions ?? []).map((s) => {
+                          const row = s as Record<string, unknown>;
+                          const key = (row.key ?? row.sessionId ?? "") as string;
+                          const isCustom = key.toLowerCase().startsWith("custom:");
+                          const employeeId = isCustom ? null : extractEmployeeIdFromSessionKey(key);
+                          const emp = employeeId
+                            ? state.digitalEmployees?.find((e) => e.id === employeeId)
+                            : null;
+                          const origin = row.origin as Record<string, string> | undefined;
+                          const displayName =
+                            emp?.name ||
+                            (origin &&
+                              ((origin.label || origin.from || origin.to) as string)) ||
+                            (row.label as string | undefined) ||
+                            (row.displayName as string | undefined) ||
+                            (row.sessionId as string | undefined) ||
+                            key ||
+                            "会话";
+                          const subtitle =
+                            (row.lastMessagePreview as string | undefined)?.trim() || "";
+                          const haystack = buildSessionSidebarSearchHaystack(
+                            row,
+                            key,
+                            displayName,
+                            subtitle,
+                          );
+                          const kind = typeof row.kind === "string" ? row.kind : "";
+                          const labelDraft = typeof row.label === "string" ? row.label : "";
+                          return {
+                            key,
+                            isCustom,
+                            emp,
+                            displayName,
+                            subtitle,
+                            haystack,
+                            kind,
+                            labelDraft,
+                          };
+                        });
+                        const filtered = q.trim()
+                          ? rows.filter((r) => sessionSidebarHaystackMatches(r.haystack, q))
+                          : rows;
+                        return filtered.map(
+                          ({ key, isCustom, emp, displayName, subtitle, kind, labelDraft }) => {
+                            const active = key && state.sessionKey === key;
+                            const canEdit = isCustom;
+                            const isEditing = state.sessionEditingKey === key;
+                            const isGlobal = kind === "global";
+                            const isMainSession = key === "agent.main.main";
+                            const saveEdit = async (newLabel: string) => {
+                              if (!key) {
+                                state.sessionEditingKey = null;
+                                return;
+                              }
+                              await patchSession(state, key, { label: newLabel.trim() || null });
+                              state.sessionEditingKey = null;
+                            };
+                            return html`
                           <div
                             class="session-item ${active ? "session-item--active" : ""} ${canEdit ? "session-item--editable" : ""}"
                             role="button"
                             tabindex="0"
                             @click=${async (e: Event) => {
                               const target = e.target as HTMLElement;
-                              if (target.closest(".session-item__edit") || target.closest("input")) return;
+                              if (
+                                target.closest(".session-item__overflow") ||
+                                target.closest(".session-item__edit") ||
+                                target.closest("input")
+                              ) {
+                                return;
+                              }
+                              state.sessionOverflow = null;
                               if (!key) return;
                               state.sessionKey = key;
                               state.chatMessage = "";
@@ -459,7 +697,7 @@ export function renderApp(state: AppViewState) {
                                     <span class="input"><input
                                       class="session-item__input"
                                       type="text"
-                                      .value=${displayName}
+                                      .value=${labelDraft}
                                       @blur=${(e: Event) => saveEdit((e.target as HTMLInputElement).value)}
                                       @keydown=${(e: KeyboardEvent) => {
                                         if (e.key === "Enter") {
@@ -476,9 +714,39 @@ export function renderApp(state: AppViewState) {
                                 : html`<span class="session-item__text">${displayName}</span>`}
                               ${!isEditing && subtitle ? html`<span class="session-item__sub muted">${subtitle}</span>` : nothing}
                             </div>
+                            ${
+                              !isGlobal
+                                ? html`
+                                    <div class="session-item__overflow">
+                                      <button
+                                        type="button"
+                                        class="btn btn--icon session-item__overflow-btn"
+                                        aria-label="会话操作"
+                                        aria-haspopup="menu"
+                                        aria-expanded=${state.sessionOverflow?.key === key ? "true" : "false"}
+                                        @click=${(e: Event) => {
+                                          e.stopPropagation();
+                                          const btn = e.currentTarget as HTMLElement;
+                                          const r = btn.getBoundingClientRect();
+                                          const pos = positionSessionOverflowFromButtonRect(r);
+                                          if (state.sessionOverflow?.key === key) {
+                                            state.sessionOverflow = null;
+                                          } else {
+                                            state.sessionOverflow = { key, ...pos };
+                                          }
+                                        }}
+                                      >
+                                        ${icons.moreHorizontal}
+                                      </button>
+                                    </div>
+                                  `
+                                : nothing
+                            }
                           </div>
                         `;
-                      })
+                          },
+                        );
+                      })()
                     }
                   </div>
                 </div>
@@ -1837,6 +2105,7 @@ export function renderApp(state: AppViewState) {
                       if (it.installed && it.serverKey) {
                         mcpInstalled.add(String(it.id));
                         mcpMap.set(it.id, it.serverKey);
+                        mcpMap.set(String(it.id), it.serverKey);
                       }
                     }
                     state.toolLibraryInstalledRemoteIds = mcpInstalled;
@@ -1901,7 +2170,10 @@ export function renderApp(state: AppViewState) {
                     );
                     if (res?.id) {
                       state.toolLibraryInstalledRemoteIds = new Set([...state.toolLibraryInstalledRemoteIds, String(id)]);
-                      state.toolLibraryInstalledMcpMap = new Map(state.toolLibraryInstalledMcpMap).set(id, res.id);
+                      const nextMap = new Map(state.toolLibraryInstalledMcpMap);
+                      nextMap.set(id, res.id);
+                      nextMap.set(String(id), res.id);
+                      state.toolLibraryInstalledMcpMap = nextMap;
                     }
                     await loadConfig(state);
                     await onRefresh();
@@ -1913,7 +2185,10 @@ export function renderApp(state: AppViewState) {
                 },
                 onDelete: async (serverKey) => {
                   state.toolLibraryError = null;
-                  handleMcpDelete(state, serverKey);
+                  await handleMcpDelete(state, serverKey);
+                  if (state.lastError) {
+                    state.toolLibraryError = state.lastError;
+                  }
                   let ridToRemove: number | string | null = null;
                   for (const [rid, sk] of state.toolLibraryInstalledMcpMap) {
                     if (sk === serverKey) {
@@ -2111,7 +2386,7 @@ export function renderApp(state: AppViewState) {
                   getSecurityFromConfig(state) ??
                   {},
                 saving: state.configSaving,
-                pendingApprovalsCount: (state.approvalsResult?.pending ?? state.approvalsResult?.entries ?? []).filter((e) => e.status === "pending" && !e.expired).length,
+                pendingApprovalsCount: state.approvalsResult?.pending?.length ?? 0,
                 onPresetApply: (preset) => handleSecurityPresetApply(state, preset),
                 onPatch: (path, value) => {
                   if (!state.securityForm) {
@@ -2290,18 +2565,11 @@ export function renderApp(state: AppViewState) {
                     }
                   }
 
-                  // 3. 默认模型不在列表中时补充
-                  if (defaultRef && !seen.has(defaultRef)) {
-                    opts.unshift({ value: defaultRef, label: defaultRef });
-                  }
-
-                  // 4. 若仍为空，至少提供「默认」选项
-                  if (opts.length === 0) {
-                    opts.push({
-                      value: defaultRef ?? "",
-                      label: defaultRef ? `默认 (${defaultRef})` : "默认",
-                    });
-                  }
+                  // 3. 首项固定为「使用默认配置」：modelRef 为 null 时选中此项
+                  opts.unshift({
+                    value: "",
+                    label: defaultRef ? `默认 (${defaultRef})` : "默认",
+                  });
 
                   return opts;
                 })(),
@@ -3215,5 +3483,6 @@ export function renderApp(state: AppViewState) {
           : nothing
       }
     </div>
+    ${renderSessionOverflowFlyout(state, basePath)}
   `;
 }

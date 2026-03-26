@@ -235,6 +235,10 @@ export class OpenClawApp extends LitElement {
   @state() approvalsLoading = false;
   @state() approvalsResult: import("./controllers/approvals.js").ApprovalsListResult | null = null;
   @state() approvalsError: string | null = null;
+  @state() approvalBannerVisible = false;
+  @state() approvalBannerPollInitialized = false;
+  @state() approvalBannerBaselineIds: string[] = [];
+  @state() approvalBannerPendingCount = 0;
   @state() modelsSelectedProvider: string | null = null;
   @state() modelsViewMode: "list" | "card" = "card";
   @state() modelsFormDirty = false;
@@ -292,6 +296,8 @@ export class OpenClawApp extends LitElement {
   @state() sessionsLoading = false;
   @state() sessionsResult: SessionsListResult | null = null;
   @state() sessionEditingKey: string | null = null;
+  @state() sessionOverflow: { top: number; right: number; key: string } | null = null;
+  @state() sessionSidebarQuery = "";
   @state() sessionsError: string | null = null;
   @state() sessionsFilterActive = "";
   @state() sessionsFilterLimit = "120";
@@ -501,6 +507,7 @@ export class OpenClawApp extends LitElement {
   @state() logsAtBottom = true;
 
   client: GatewayBrowserClient | null = null;
+  approvalBannerPollInterval: number | null = null;
   private chatScrollFrame: number | null = null;
   private chatScrollTimeout: number | null = null;
   private chatHasAutoScrolled = false;
@@ -519,6 +526,14 @@ export class OpenClawApp extends LitElement {
   private themeMedia: MediaQueryList | null = null;
   private themeMediaHandler: ((event: MediaQueryListEvent) => void) | null = null;
   private topbarObserver: ResizeObserver | null = null;
+  private sessionOverflowEscapeHandler = (ev: KeyboardEvent) => {
+    if (ev.key !== "Escape") {
+      return;
+    }
+    if (this.sessionOverflow) {
+      this.sessionOverflow = null;
+    }
+  };
 
   createRenderRoot() {
     return this;
@@ -526,6 +541,7 @@ export class OpenClawApp extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    document.addEventListener("keydown", this.sessionOverflowEscapeHandler);
     handleConnected(this as unknown as Parameters<typeof handleConnected>[0]);
   }
 
@@ -534,6 +550,7 @@ export class OpenClawApp extends LitElement {
   }
 
   disconnectedCallback() {
+    document.removeEventListener("keydown", this.sessionOverflowEscapeHandler);
     handleDisconnected(this as unknown as Parameters<typeof handleDisconnected>[0]);
     super.disconnectedCallback();
   }
@@ -696,6 +713,10 @@ export class OpenClawApp extends LitElement {
     } finally {
       this.execApprovalBusy = false;
     }
+  }
+
+  dismissApprovalBanner() {
+    this.approvalBannerVisible = false;
   }
 
   handleGatewayUrlConfirm() {

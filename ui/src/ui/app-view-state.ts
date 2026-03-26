@@ -154,6 +154,10 @@ export type AppViewState = {
   sessionsLoading: boolean;
   sessionsResult: SessionsListResult | null;
   sessionEditingKey: string | null;
+  /** 消息页侧栏：⋯ 菜单（fixed 浮层，避免被侧栏 overflow 裁剪） */
+  sessionOverflow: { top: number; right: number; key: string } | null;
+  /** 消息页侧栏：按名称 / 标签字段 / 副标题等模糊过滤会话 */
+  sessionSidebarQuery: string;
   sessionsError: string | null;
   sessionsFilterActive: string;
   sessionsFilterLimit: string;
@@ -253,6 +257,10 @@ export type AppViewState = {
   approvalsLoading: boolean;
   approvalsResult: import("./controllers/approvals.js").ApprovalsListResult | null;
   approvalsError: string | null;
+  approvalBannerVisible: boolean;
+  approvalBannerPollInitialized: boolean;
+  approvalBannerBaselineIds: string[];
+  approvalBannerPendingCount: number;
   // Models
   modelsSelectedProvider: string | null;
   modelsViewMode: "list" | "card";
@@ -389,6 +397,7 @@ export type AppViewState = {
   logsMaxBytes: number;
   logsAtBottom: boolean;
   client: GatewayBrowserClient | null;
+  approvalBannerPollInterval: number | null;
   refreshSessionsAfterChat: Set<string>;
   connect: () => void;
   setTab: (tab: Tab) => void;
@@ -411,6 +420,7 @@ export type AppViewState = {
   handleNostrProfileImport: () => Promise<void>;
   handleNostrProfileToggleAdvanced: () => void;
   handleExecApprovalDecision: (decision: "allow-once" | "allow-always" | "deny") => Promise<void>;
+  dismissApprovalBanner: () => void;
   handleGatewayUrlConfirm: () => void;
   handleGatewayUrlCancel: () => void;
   handleConfigLoad: () => Promise<void>;

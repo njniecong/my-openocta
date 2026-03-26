@@ -30,7 +30,9 @@ export type ApprovalsListResult = {
   storePath: string;
   entries: ApprovalEntry[];
   approved?: ApprovalEntry[];
+  /** 仅超时窗口内、待人工审批（不含已过期态） */
   pending?: ApprovalEntry[];
+  pendingExpired?: ApprovalEntry[];
   denied?: ApprovalEntry[];
   whitelisted?: WhitelistEntry[];
 };
@@ -43,22 +45,49 @@ export type ApprovalsState = {
   approvalsError: string | null;
 };
 
+function isActivePendingEntry(e: ApprovalEntry): boolean {
+  if (e.status !== "pending") {
+    return false;
+  }
+  if (e.expired === true) {
+    return false;
+  }
+  if (e.ttlSeconds != null && e.ttlSeconds < 0) {
+    return false;
+  }
+  return true;
+}
+
+export function normalizeApprovalsListResult(raw: ApprovalsListResult | undefined | null): ApprovalsListResult {
+  const r = raw ?? { storePath: "", entries: [] };
+  const entries = r.entries ?? [];
+  return {
+    storePath: r.storePath,
+    entries,
+    approved: r.approved ?? entries.filter((e) => e.status === "approved"),
+    pending:
+      r.pending ??
+      entries.filter((e) => isActivePendingEntry(e)),
+    pendingExpired:
+      r.pendingExpired ?? entries.filter((e) => e.status === "expired" || (e.status === "pending" && e.expired === true)),
+    denied: r.denied ?? entries.filter((e) => e.status === "denied"),
+    whitelisted: r.whitelisted ?? [],
+  };
+}
+
+/** 页头提示/轮询：仅统计当前仍处于有效期待审批的请求 id */
+export function collectActivePendingApprovalIds(result: ApprovalsListResult): string[] {
+  const pend = result.pending ?? [];
+  return pend.filter(isActivePendingEntry).map((e) => e.id).filter((id): id is string => Boolean(id?.trim()));
+}
+
 export async function loadApprovalsList(state: ApprovalsState) {
   if (!state.client || !state.connected) return;
   state.approvalsLoading = true;
   state.approvalsError = null;
   try {
     const res = await state.client.request<ApprovalsListResult | undefined>("approvals.list", {});
-    const raw = res ?? { storePath: "", entries: [] };
-    const entries = raw.entries ?? [];
-    state.approvalsResult = {
-      storePath: raw.storePath,
-      entries,
-      approved: raw.approved ?? entries.filter((e) => e.status === "approved"),
-      pending: raw.pending ?? entries.filter((e) => e.status === "pending" || e.status === "expired"),
-      denied: raw.denied ?? entries.filter((e) => e.status === "denied"),
-      whitelisted: raw.whitelisted ?? [],
-    };
+    state.approvalsResult = normalizeApprovalsListResult(res);
   } catch (err) {
     state.approvalsError = String(err);
     state.approvalsResult = null;
