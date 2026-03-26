@@ -335,9 +335,13 @@ type employeeMarketItem struct {
 	Category    string      `json:"category,omitempty"`
 	Status      string      `json:"status,omitempty"`
 	Tags        string      `json:"tags,omitempty"`
-	Enabled     *bool       `json:"enabled,omitempty"`   // 本地员工启用状态
-	Installed   bool        `json:"installed,omitempty"` // 从远程安装后刷新仍可识别
-	LocalID     string      `json:"localId,omitempty"`   // 安装后的本地 id
+	// Readme 与官网员工详情一致；反序列化时必须保留该字段，否则详情弹层无法展示说明文档。
+	Readme string `json:"readme,omitempty"`
+	// Content 部分站点与技能详情一致用该字段承载 Markdown；合并进 Readme 后清空，避免重复。
+	Content   string `json:"content,omitempty"`
+	Enabled   *bool  `json:"enabled,omitempty"`   // 本地员工启用状态
+	Installed bool   `json:"installed,omitempty"` // 从远程安装后刷新仍可识别
+	LocalID   string `json:"localId,omitempty"`   // 安装后的本地 id
 }
 
 func (s *Server) handleSiteEmployees(w http.ResponseWriter, r *http.Request) {
@@ -421,12 +425,18 @@ func (s *Server) handleSiteEmployeeDetail(w http.ResponseWriter, r *http.Request
 			typeVal = "其它"
 		}
 		enabled := m.Enabled
+		readme := ""
+		readmePath := filepath.Join(employees.ResolveEmployeesDir(env), localID, "README.md")
+		if data, err := os.ReadFile(readmePath); err == nil && len(data) > 0 {
+			readme = string(data)
+		}
 		detail := employeeMarketItem{
 			ID:          id,
 			Name:        m.Name,
 			Description: m.Description,
 			Category:    typeVal,
 			Status:      "open",
+			Readme:      readme,
 			Enabled:     &enabled,
 		}
 		setSiteProxyCORSHeaders(w)
@@ -460,6 +470,10 @@ func (s *Server) handleSiteEmployeeDetail(w http.ResponseWriter, r *http.Request
 		_, _ = w.Write(body)
 		return
 	}
+	if detail.Readme == "" && detail.Content != "" {
+		detail.Readme = detail.Content
+	}
+	detail.Content = ""
 	env := func(k string) string { return os.Getenv(k) }
 	empMap := installmetadata.EmployeeInstallMap(env)
 	if localID, ok := empMap[id]; ok {
