@@ -134,7 +134,7 @@ export function renderAbout(props: AboutViewProps) {
                   </button>
                   <button
                     type="button"
-                    class="btn btn--danger"
+                    class="btn btn--danger-outline"
                     ?disabled=${props.uninstallLoading}
                     @click=${props.onConfirmUninstall}
                   >

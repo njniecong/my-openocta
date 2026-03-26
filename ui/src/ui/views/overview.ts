@@ -172,7 +172,7 @@ export function renderOverview(props: OverviewProps) {
           </label>
         </div>
         <div class="row" style="margin-top: 14px;">
-          <button class="btn" @click=${() => props.onConnect()}>${t("overviewConnect")}</button>
+          <button class="btn primary" @click=${() => props.onConnect()}>${t("overviewConnect")}</button>
           <button class="btn" @click=${() => props.onRefresh()}>${t("overviewRefresh")}</button>
           <span class="muted">${t("overviewConnectHint")}</span>
         </div>

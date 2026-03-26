@@ -546,7 +546,7 @@ export function renderChat(props: ChatProps) {
               props.onModelRefChange
                 ? html`
                     <label class="field chat-compose__model-select">
-                      <span class="select"><select
+                      <span class="select small"><select
                         aria-label="大模型"
                         .value=${props.modelRef ?? ""}
                         ?disabled=${!props.connected}

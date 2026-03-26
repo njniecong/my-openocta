@@ -334,7 +334,7 @@ function renderRow(
         ${showDisplayName ? html`<span class="muted session-key-display-name">${displayName}</span>` : nothing}
       </div>
       <div>
-        <span class="input"><input
+        <span class="input small"><input
           .value=${row.label ?? ""}
           ?disabled=${disabled}
           placeholder=${t("commonOptional")}
@@ -348,7 +348,7 @@ function renderRow(
       <div>${updated}</div>
       <div>${formatSessionTokens(row)}</div>
       <div>
-        <span class="select"><select
+        <span class="select small"><select
           .value=${thinking}
           ?disabled=${disabled}
           @change=${(e: Event) => {
@@ -365,7 +365,7 @@ function renderRow(
         </select></span>
       </div>
       <div>
-        <span class="select"><select
+        <span class="select small"><select
           .value=${verbose}
           ?disabled=${disabled}
           @change=${(e: Event) => {
@@ -380,7 +380,7 @@ function renderRow(
         </select></span>
       </div>
       <div>
-        <span class="select"><select
+        <span class="select small"><select
           .value=${reasoning}
           ?disabled=${disabled}
           @change=${(e: Event) => {
@@ -395,7 +395,7 @@ function renderRow(
         </select></span>
       </div>
       <div>
-        <button class="btn" ?disabled=${disabled} @click=${() => onDelete(row.key)}>
+        <button class="btn small" ?disabled=${disabled} @click=${() => onDelete(row.key)}>
           ${t("commonDelete")}
         </button>
       </div>

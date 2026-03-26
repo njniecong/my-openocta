@@ -691,7 +691,7 @@ export function renderConfig(props: ConfigProps) {
         }
 
         <!-- Form content -->
-        <div class="config-content">
+        <div class="config-content ${props.formMode === "raw" ? "config-content--raw" : ""}">
           ${
             props.formMode === "form"
               ? html`

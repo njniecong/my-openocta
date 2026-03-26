@@ -179,7 +179,7 @@ function renderSessionOverflowFlyout(state: AppViewState, basePath: string) {
       <button
         type="button"
         role="menuitem"
-        class="session-item__overflow-item session-item__overflow-item--danger"
+        class="session-item__overflow-item"
         ?disabled=${isMainSession}
         @click=${async () => {
           close();
@@ -548,18 +548,20 @@ export function renderApp(state: AppViewState) {
             ? html`
                 <div class="session-sidebar">
                   <div class="session-search">
-                    <input
-                      class="session-search__input"
-                      type="search"
-                      autocomplete="off"
-                      spellcheck="false"
-                      placeholder="搜索名称、标签或预览…"
-                      aria-label="搜索会话"
-                      .value=${state.sessionSidebarQuery}
-                      @input=${(e: Event) => {
-                        state.sessionSidebarQuery = (e.target as HTMLInputElement).value;
-                      }}
-                    />
+                    <span class="input">
+                      <input
+                        class="session-search__input"
+                        type="search"
+                        autocomplete="off"
+                        spellcheck="false"
+                        placeholder="搜索名称、标签或预览…"
+                        aria-label="搜索会话"
+                        .value=${state.sessionSidebarQuery}
+                        @input=${(e: Event) => {
+                          state.sessionSidebarQuery = (e.target as HTMLInputElement).value;
+                        }}
+                      />
+                    </span>
                     <span class="session-search__icon" aria-hidden="true">${icons.search}</span>
                   </div>
                   <button
@@ -720,7 +722,7 @@ export function renderApp(state: AppViewState) {
                                     <div class="session-item__overflow">
                                       <button
                                         type="button"
-                                        class="btn btn--icon session-item__overflow-btn"
+                                        class="btn small session-item__overflow-btn"
                                         aria-label="会话操作"
                                         aria-haspopup="menu"
                                         aria-expanded=${state.sessionOverflow?.key === key ? "true" : "false"}

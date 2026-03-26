@@ -272,7 +272,7 @@
 
 .content--catalog .emp-card-wrap:hover {
   border-color: var(--accent);
-  box-shadow: none;
+  box-shadow: 0px 2px 10px 10px rgba(36, 186, 81, 0.04);
 }
 
 .content--catalog .emp-card-btn {

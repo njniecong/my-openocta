@@ -146,53 +146,38 @@
 }
 
 .session-search {
+  margin: 0 16px;
   position: relative;
   display: flex;
   align-items: center;
   flex-shrink: 0;
-}
+  .input {
+    width: 100%;
+  }
+  .session-search__input {
+    padding-left: 30px;
+  }
+  .session-search__icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    pointer-events: none;
 
-.session-search__input {
-  width: 100%;
-  height: 36px;
-  padding: 0 36px 0 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-  font-size: 13px;
-  outline: none;
-}
-
-.session-search__input:focus {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
-}
-
-.session-search__input::placeholder {
-  color: var(--muted);
-}
-
-.session-search__icon {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted);
-  pointer-events: none;
-}
-
-.session-search__icon svg {
-  width: 18px;
-  height: 18px;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+    svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+  }
 }
 
 .session-new {
@@ -276,6 +261,7 @@
 }
 
 .session-item {
+  position: relative;
   flex: none;
   display: flex;
   align-items: center;
@@ -285,6 +271,7 @@
   color: var(--text-primary);
   text-align: left;
   cursor: pointer;
+  transition: background-color 140ms ease;
 }
 
 .session-item:hover,
@@ -320,6 +307,12 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  transition: padding-right 140ms ease;
+}
+
+.session-item:hover .session-item__body,
+.session-item:focus-within .session-item__body {
+  padding-right: 40px;
 }
 
 .session-item__text {
@@ -351,27 +344,38 @@
 }
 
 .session-item__overflow {
-  position: relative;
-  flex-shrink: 0;
-  align-self: flex-start;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  position: absolute;
+  top: 0;
+  right: 16px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(4px);
+  transition:
+    opacity 120ms ease,
+    transform 140ms ease,
+    visibility 0s linear 140ms;
+
+  .session-item__overflow-btn {
+    width: 28px;
+    padding: 2px;
+    border-color: var(--border-primary);
+  }
+  .session-item__overflow-btn svg {
+    width: 20px;
+  }
 }
 
-.session-item__overflow-btn {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border-radius: 8px;
-  color: var(--muted);
-}
-
-.session-item__overflow-btn:hover {
-  color: var(--text);
-  background: var(--bg2);
-}
-
-.session-item__overflow-btn svg {
-  width: 18px;
-  height: 18px;
+.session-item:hover .session-item__overflow,
+.session-item:focus-within .session-item__overflow {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(0);
+  transition-delay: 0s;
 }
 
 /* ⋯ 菜单：fixed 浮层在 shell 根级渲染，避免 .nav / .session-list 的 overflow 裁剪 */
@@ -409,16 +413,13 @@
 }
 
 .session-item__overflow-item:hover:not(:disabled) {
-  background: var(--bg2);
+  background: var(--bg-content);
+  color: var(--text-primary);
 }
 
 .session-item__overflow-item:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-.session-item__overflow-item--danger {
-  color: var(--danger, #c62828);
 }
 
 .topbar .nav-collapse-toggle {

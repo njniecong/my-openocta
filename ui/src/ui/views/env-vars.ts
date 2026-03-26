@@ -103,7 +103,7 @@ function renderVarsTable(
                     </td>
                     <td>
                       <button
-                        class="btn btn--ghost env-vars__delete"
+                        class="btn small btn--ghost env-vars__delete"
                         ?disabled=${!connected}
                         @click=${() => handleDelete(index)}
                         title=${t("envVarsDelete")}
