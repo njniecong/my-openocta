@@ -540,7 +540,7 @@ export function renderApp(state: AppViewState) {
           <div class="brand">
             <div class="brand-logo">
               <img
-                src=${basePath ? `${basePath}/favicon.svg` : "/favicon.svg"}
+                src=${basePath ? `${basePath}/logo_h.png` : "/logo_h.png"}
                 alt="OpenOcta"
               />
             </div>
