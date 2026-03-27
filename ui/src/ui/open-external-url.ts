@@ -1,4 +1,8 @@
-import { gatewayHttpBase } from "./gateway-url.ts";
+export const SHELL_MODE_QUERY_PARAM = "_shell";
+export const DESKTOP_SHELL_QUERY_VALUE = "d";
+export const SHELL_MODE_SESSION_KEY = "openocta.shell";
+
+export type ShellMode = "browser" | "desktop";
 
 function normalizeExternalHref(url: string): string | null {
   const raw = (url ?? "").trim();
@@ -12,58 +16,132 @@ function normalizeExternalHref(url: string): string | null {
   }
 }
 
+export function bootstrapShellModeFromUrl() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const url = new URL(window.location.href);
+  const raw = url.searchParams.get(SHELL_MODE_QUERY_PARAM);
+  if (!raw) {
+    return;
+  }
+  if (raw === DESKTOP_SHELL_QUERY_VALUE) {
+    try {
+      window.sessionStorage.setItem(SHELL_MODE_SESSION_KEY, "desktop");
+    } catch {
+      /* ignore */
+    }
+  }
+  url.searchParams.delete(SHELL_MODE_QUERY_PARAM);
+  window.history.replaceState(window.history.state, "", url.toString());
+}
+
+export function getShellMode(): ShellMode {
+  if (typeof window === "undefined") {
+    return "browser";
+  }
+  try {
+    return window.sessionStorage.getItem(SHELL_MODE_SESSION_KEY) === "desktop"
+      ? "desktop"
+      : "browser";
+  } catch {
+    return "browser";
+  }
+}
+
+export function isDesktopShell(): boolean {
+  return getShellMode() === "desktop";
+}
+
+export function getExternalUrlOpenMode(): "current-window" | "new-window" {
+  return isDesktopShell() ? "current-window" : "new-window";
+}
+
+function findAnchorFromEvent(event: MouseEvent): HTMLAnchorElement | null {
+  const path = typeof event.composedPath === "function" ? event.composedPath() : [];
+  for (const node of path) {
+    if (node instanceof HTMLAnchorElement && node.href) {
+      return node;
+    }
+    if (node instanceof Element) {
+      const anchor = node.closest("a[href]");
+      if (anchor instanceof HTMLAnchorElement) {
+        return anchor;
+      }
+    }
+  }
+  const target = event.target;
+  if (target instanceof Element) {
+    const anchor = target.closest("a[href]");
+    if (anchor instanceof HTMLAnchorElement) {
+      return anchor;
+    }
+  }
+  return null;
+}
+
+function shouldInterceptExternalAnchorClick(
+  event: MouseEvent,
+  anchor: HTMLAnchorElement,
+): boolean {
+  if (event.defaultPrevented || event.button !== 0) {
+    return false;
+  }
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    return false;
+  }
+  if (anchor.hasAttribute("download")) {
+    return false;
+  }
+  const target = (anchor.getAttribute("target") ?? "").trim().toLowerCase();
+  if (target && target !== "_self" && target !== "_blank") {
+    return false;
+  }
+  const href = normalizeExternalHref(anchor.href);
+  if (!href) {
+    return false;
+  }
+  return new URL(href).origin !== window.location.origin;
+}
+
+export function handleExternalAnchorClick(
+  event: MouseEvent,
+  opts?: {
+    gatewayHost?: string;
+    gatewayToken?: string;
+    openUrl?: typeof openExternalUrl;
+  },
+): boolean {
+  const anchor = findAnchorFromEvent(event);
+  if (!anchor || !shouldInterceptExternalAnchorClick(event, anchor)) {
+    return false;
+  }
+  event.preventDefault();
+  void (opts?.openUrl ?? openExternalUrl)(anchor.href, {
+    gatewayHost: opts?.gatewayHost,
+    gatewayToken: opts?.gatewayToken,
+  });
+  return true;
+}
+
 /**
- * Open an http(s) URL: new browser tab when possible.
- * - Wails：优先 window.runtime.BrowserOpenURL（Wails 注入脚本时）。
- * - 桌面 WebView 加载的是网关 http://127.0.0.1:18900 时通常 **没有** runtime，若先走 window.open，
- *   WebView2 会再开一个内嵌弹出窗（用户感知为「弹框」），同时系统浏览器也可能被打开。
- *   因此在有 Gateway + token 时 **先于 window.open** 调用 POST /api/desktop/open-url，由网关调系统浏览器。
- * - 纯浏览器环境：window.open，失败再 navigation。
+ * Open an http(s) URL using the current shell policy.
+ * - Desktop shell: open in the current window.
+ * - Browser: prefer a new tab, then fall back to current-window navigation.
  */
 export async function openExternalUrl(
   url: string,
-  opts?: { gatewayHost?: string; gatewayToken?: string },
+  _opts?: { gatewayHost?: string; gatewayToken?: string },
 ): Promise<void> {
   const href = normalizeExternalHref(url);
   if (!href) return;
 
-  const runtime = (globalThis as unknown as { runtime?: { BrowserOpenURL?: (u: string) => void } })
-    .runtime;
-  if (typeof runtime?.BrowserOpenURL === "function") {
-    try {
-      runtime.BrowserOpenURL(href);
-      return;
-    } catch {
-      /* fall through */
-    }
+  if (getExternalUrlOpenMode() === "current-window") {
+    window.location.assign(href);
+    return;
   }
 
-  const base = gatewayHttpBase((opts?.gatewayHost ?? "").trim());
-  const token = (opts?.gatewayToken ?? "").trim();
-  if (base && token) {
-    try {
-      const res = await fetch(`${base.replace(/\/$/, "")}/api/desktop/open-url`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-Gateway-Token": token,
-        },
-        body: JSON.stringify({ url: href }),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as { ok?: boolean };
-        if (data.ok === true) {
-          return;
-        }
-      }
-    } catch {
-      /* fall through */
-    }
-  }
-
-  const opened = window.open(href, "_blank", "noopener,noreferrer");
+  const opened = window.open(href, "_blank");
   if (opened) {
     try {
       opened.opener = null;

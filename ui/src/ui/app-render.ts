@@ -603,7 +603,7 @@ export function renderApp(state: AppViewState) {
           <div class="pill pill--link">
             <button
               type="button"
-              title="GitHub 仓库（新窗口打开）"
+              title="打开 GitHub 仓库"
               class="topbar-link"
               @click=${() =>
                 void openExternalUrl("https://github.com/openocta/openocta.git", {
@@ -918,7 +918,7 @@ export function renderApp(state: AppViewState) {
                           <button
                             type="button"
                             class="nav-item"
-                            title="在线文档（新窗口打开）"
+                            title="打开在线文档"
                             @click=${() =>
                               void openExternalUrl("https://www.openocta.com/docs", {
                                 gatewayHost: state.settings.gatewayUrl,

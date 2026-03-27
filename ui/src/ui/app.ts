@@ -80,6 +80,7 @@ import {
 } from "./app-tool-stream.ts";
 import { resolveInjectedAssistantIdentity } from "./assistant-identity.ts";
 import { loadAssistantIdentity as loadAssistantIdentityInternal } from "./controllers/assistant-identity.ts";
+import { bootstrapShellModeFromUrl, handleExternalAnchorClick } from "./open-external-url.ts";
 import { loadSettings, type UiSettings } from "./storage.ts";
 import { type ChatAttachment, type ChatQueueItem, type CronFormState } from "./ui-types.ts";
 
@@ -90,6 +91,8 @@ declare global {
 }
 
 const injectedAssistantIdentity = resolveInjectedAssistantIdentity();
+
+bootstrapShellModeFromUrl();
 
 function resolveOnboardingMode(): boolean {
   if (!window.location.search) {
@@ -536,6 +539,12 @@ export class OpenClawApp extends LitElement {
       this.sessionOverflow = null;
     }
   };
+  private externalLinkClickHandler = (event: MouseEvent) => {
+    handleExternalAnchorClick(event, {
+      gatewayHost: this.settings.gatewayUrl,
+      gatewayToken: this.settings.token,
+    });
+  };
 
   createRenderRoot() {
     return this;
@@ -544,6 +553,7 @@ export class OpenClawApp extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     document.addEventListener("keydown", this.sessionOverflowEscapeHandler);
+    this.addEventListener("click", this.externalLinkClickHandler);
     handleConnected(this as unknown as Parameters<typeof handleConnected>[0]);
   }
 
@@ -553,6 +563,7 @@ export class OpenClawApp extends LitElement {
 
   disconnectedCallback() {
     document.removeEventListener("keydown", this.sessionOverflowEscapeHandler);
+    this.removeEventListener("click", this.externalLinkClickHandler);
     handleDisconnected(this as unknown as Parameters<typeof handleDisconnected>[0]);
     super.disconnectedCallback();
   }

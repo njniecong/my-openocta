@@ -54,7 +54,7 @@ export function renderOverview(props: OverviewProps) {
               href="https://docs.openclaw.ai/web/dashboard"
               target="_blank"
               rel="noreferrer"
-              title="Control UI auth docs (opens in new tab)"
+              title="Open Control UI auth docs"
               >Docs: Control UI auth</a
             >
           </div>
@@ -70,7 +70,7 @@ export function renderOverview(props: OverviewProps) {
             href="https://docs.openclaw.ai/web/dashboard"
             target="_blank"
             rel="noreferrer"
-            title="Control UI auth docs (opens in new tab)"
+            title="Open Control UI auth docs"
             >Docs: Control UI auth</a
           >
         </div>
@@ -103,7 +103,7 @@ export function renderOverview(props: OverviewProps) {
             href="https://docs.openclaw.ai/gateway/tailscale"
             target="_blank"
             rel="noreferrer"
-            title="Tailscale Serve docs (opens in new tab)"
+            title="Open Tailscale Serve docs"
             >Docs: Tailscale Serve</a
           >
           <span class="muted"> · </span>
@@ -112,7 +112,7 @@ export function renderOverview(props: OverviewProps) {
             href="https://docs.openclaw.ai/web/control-ui#insecure-http"
             target="_blank"
             rel="noreferrer"
-            title="Insecure HTTP docs (opens in new tab)"
+            title="Open Insecure HTTP docs"
             >Docs: Insecure HTTP</a
           >
         </div>
