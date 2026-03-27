@@ -252,12 +252,12 @@
 
 .nav__toggle-icon--collapse,
 .session-sidebar__toggle-icon--collapse {
-  transform: rotateY(180deg);
+  transform: rotate(90deg);
 }
 
 .nav__toggle-icon--expand,
 .session-sidebar__toggle-icon--expand {
-  transform: rotateY(0);
+  transform: rotate(-90deg);
 }
 
 .session-item {
@@ -291,14 +291,9 @@
   color: var(--accent);
 }
 
-.session-item__icon-default {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  svg {
-    width: 20px;
-    height: 20px;
-  }
+.session-item__icon-default svg {
+  width: 16px;
+  height: 16px;
 }
 
 .session-item__icon-emp {
@@ -448,12 +443,23 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.brand-logo {
+  flex: 0 0 auto;
+  line-height: 0;
+  max-width: 160px;
 }
 
 .brand-logo img {
-  width: 100%;
-  height: 100%;
+  display: block;
+  height: 44px;
+  width: auto;
+  max-width: 160px;
   object-fit: contain;
+  object-position: left center;
 }
 
 .brand-text {
@@ -550,10 +556,6 @@
 .nav--massage.nav--collapsed {
   width: 56px;
   min-width: 56px;
-}
-
-.nav--massage.nav--collapsed .session-search {
-  display: none;
 }
 
 .nav--massage.nav--collapsed .session-new {
@@ -738,7 +740,9 @@ button.nav-item {
 .nav-item__icon svg {
   width: 16px;
   height: 16px;
-  color: var(--text-placeholder);
+  stroke: var(--text-placeholder);
+  fill: none;
+  stroke-width: 1.5px;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -776,11 +780,11 @@ button.nav-item {
   color: var(--accent);
 }
 .nav-item.active .nav-item__icon svg {
-  color: var(--accent);
+  stroke: var(--accent);
 }
 
 .top-tab--active .nav-item__icon svg {
-  color: var(--accent);
+  stroke: var(--accent);
 }
 
 /* ===========================================
@@ -1625,8 +1629,10 @@ button.nav-item {
 .topbar-left {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
+  justify-content: flex-start;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-width: 0;
 }
 
 .top-tabs {
@@ -1648,7 +1654,7 @@ button.nav-item {
 .top-tab {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   height: 100%;
   padding: 0 14px;
   border: none;
@@ -1681,12 +1687,6 @@ button.nav-item {
   height: 2px;
   margin-left: -16px;
   background: var(--text-primary);
-}
-
-.brand-logo {
-  width: auto;
-  height: 24px;
-  flex-shrink: 0;
 }
 
 .brand-title {
