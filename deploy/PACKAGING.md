@@ -112,14 +112,16 @@ make wails-dmg-amd64
    - 仅当 **`GORELEASER_INCLUDE_DMG=1`** 且在 **Darwin** 上运行时，会执行 `make embed && make wails-dmg-all`。  
    - Linux CI 请勿设置该变量，钩子会跳过。
 
-2. **上传 DMG**：合并副配置（仅在已存在 `dist/OpenOcta*.dmg` 时使用）：
+2. **上传 DMG**：`.goreleaser.yaml` 的 `release.extra_files` 已包含 `glob: ./dist/OpenOcta*.dmg`；存在则随 Release 上传，不存在则跳过（Linux-only 流水线也可共用同一配置）。
 
    ```bash
-   export GORELEASER_INCLUDE_DMG=1
-   goreleaser release --clean -f .goreleaser.yaml -f .goreleaser.dmg.yaml
+   export GORELEASER_INCLUDE_DMG=1   # 仅 macOS 打 DMG 时需要
+   goreleaser release --clean -f .goreleaser.yaml
    ```
 
-3. **GitHub**：在主 `.goreleaser.yaml` 的 `release` 中增加 `github` 段（`owner` / `name`），并设置 **`GITHUB_TOKEN`**（或 Actions 默认 `secrets.GITHUB_TOKEN`）。副配置 `.goreleaser.dmg.yaml` **只**含 `extra_files`，避免覆盖你现有的 `gitlab` 发布块。
+   **勿**执行 `goreleaser -f .goreleaser.yaml -f <另一文件>`：当前 GoReleaser 只会采用**最后一个** `-f`，曾用副配置只写 `release` 时会导致 `builds` 退回默认（`main=.`），报错「does not contain a main function」。
+
+3. **GitHub**：在 `.goreleaser.yaml` 的 `release` 中增加 `github` 段（`owner` / `name`），并设置 **`GITHUB_TOKEN`**（或与现有 `gitlab` 块并存，按你的发布目标启用）。
 
 4. **推荐 CI**：单独 **macos-latest** job 负责「带 DMG 的完整 GoReleaser」；Linux job 可只做 deb/rpm（当前主配置即 Linux 二进制），避免在 Linux 上期待生成 `.dmg`。
 
