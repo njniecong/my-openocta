@@ -922,7 +922,7 @@ export function renderApp(state: AppViewState) {
                             class="nav-item"
                             title="打开在线文档"
                             @click=${() =>
-                              void openExternalUrl("https://www.openocta.com/docs", {
+                              void openExternalUrl("https://databuff.yuque.com/org-wiki-databuff-spr8e6/lqn7on", {
                                 gatewayHost: state.settings.gatewayUrl,
                                 gatewayToken: state.settings.token,
                               })}
