@@ -684,11 +684,11 @@ func ChatHistoryHandler(opts HandlerOpts) error {
 	case int:
 		limit = v
 	default:
-		limit = 200
+		limit = 100
 	}
 	hardMax := 1000
 	if limit <= 0 || limit > hardMax {
-		limit = 200
+		limit = 100
 	}
 
 	sessionID, sessionFile, storePath, err := ResolveChatSessionID(opts.Params, opts.Context)

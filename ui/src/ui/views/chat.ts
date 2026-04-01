@@ -9,6 +9,7 @@ import {
   renderReadingIndicatorGroup,
   renderStreamingGroup,
 } from "../chat/grouped-render.ts";
+import { CHAT_HISTORY_LIMIT } from "../controllers/chat.ts";
 import { normalizeMessage, normalizeRoleForGrouping } from "../chat/message-normalizer.ts";
 import { icons } from "../icons.ts";
 import { renderMarkdownSidebar } from "./markdown-sidebar.ts";
@@ -618,8 +619,6 @@ export function renderChat(props: ChatProps) {
   `;
 }
 
-const CHAT_HISTORY_RENDER_LIMIT = 200;
-
 function groupMessages(items: ChatItem[]): Array<ChatItem | MessageGroup> {
   const result: Array<ChatItem | MessageGroup> = [];
   let currentGroup: MessageGroup | null = null;
@@ -666,14 +665,14 @@ function buildChatItems(props: ChatProps): Array<ChatItem | MessageGroup> {
   const history = Array.isArray(props.messages) ? props.messages : [];
   const tools = Array.isArray(props.toolMessages) ? props.toolMessages : [];
   const conversationOnly = props.conversationOnly ?? true;
-  const historyStart = Math.max(0, history.length - CHAT_HISTORY_RENDER_LIMIT);
+  const historyStart = Math.max(0, history.length - CHAT_HISTORY_LIMIT);
   if (historyStart > 0) {
     items.push({
       kind: "message",
       key: "chat:history:notice",
       message: {
         role: "system",
-        content: `Showing last ${CHAT_HISTORY_RENDER_LIMIT} messages (${historyStart} hidden).`,
+        content: `Showing last ${CHAT_HISTORY_LIMIT} messages (${historyStart} hidden).`,
         timestamp: Date.now(),
       },
     });

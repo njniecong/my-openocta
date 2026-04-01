@@ -28,6 +28,9 @@ export type ChatEventPayload = {
   errorMessage?: string;
 };
 
+/** Last N messages for chat.history and thread rendering (gateway hard-caps above this). */
+export const CHAT_HISTORY_LIMIT = 50;
+
 export async function loadChatHistory(state: ChatState) {
   if (!state.client || !state.connected) {
     return;
@@ -39,7 +42,7 @@ export async function loadChatHistory(state: ChatState) {
       "chat.history",
       {
         sessionKey: canonicalGatewaySessionKey(state.sessionKey),
-        limit: 200,
+        limit: CHAT_HISTORY_LIMIT,
       },
     );
     state.chatMessages = Array.isArray(res.messages) ? res.messages : [];
