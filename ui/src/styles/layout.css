@@ -7,6 +7,7 @@
   --shell-gap: 16px;
   --shell-nav-width: 200px;
   --shell-topbar-height: 50px;
+  --window-frame-inset: 0px;
   --shell-focus-duration: 200ms;
   --shell-focus-ease: var(--ease-out);
   height: 100vh;
@@ -32,6 +33,11 @@
   min-height: 100vh;
   height: 100vh;
   overflow: hidden;
+}
+
+.shell--windows-desktop.shell--window-maximised {
+  padding: 8px;
+  box-sizing: border-box;
 }
 
 @supports (height: 100dvh) {
@@ -1640,6 +1646,18 @@ button.nav-item {
   box-sizing: border-box;
 }
 
+.shell--windows-desktop .topbar__main {
+  --wails-draggable: drag;
+  padding-right: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.shell--windows-desktop .topbar__no-drag,
+.shell--windows-desktop .topbar__no-drag * {
+  --wails-draggable: no-drag;
+}
+
 .topbar-left {
   display: flex;
   align-items: center;
@@ -1732,6 +1750,55 @@ button.nav-item {
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+}
+
+.window-controls {
+  display: flex;
+  align-self: stretch;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.window-control {
+  width: 46px;
+  min-width: 46px;
+  height: var(--shell-topbar-height);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-regular);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) ease,
+    color var(--duration-fast) ease;
+}
+
+.window-control:hover {
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+  color: var(--text-primary);
+}
+
+.window-control:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.window-control svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75px;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+.window-control--close:hover {
+  background: #e81123;
+  color: #ffffff;
 }
 
 .topbar-status .pill {

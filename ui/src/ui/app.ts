@@ -87,6 +87,7 @@ import {
   unregisterNativeDialogInvoker,
   type NativeDialogInvoker,
 } from "./native-dialog-bridge.ts";
+import { bootstrapShellModeFromUrl, isDesktopShell } from "./open-external-url.ts";
 import { loadSettings, type UiSettings } from "./storage.ts";
 import type { NativeDialogModel } from "./views/native-dialog-overlay.ts";
 import { type ChatAttachment, type ChatQueueItem, type CronFormState } from "./ui-types.ts";
@@ -94,10 +95,19 @@ import { type ChatAttachment, type ChatQueueItem, type CronFormState } from "./u
 declare global {
   interface Window {
     __OPENCLAW_CONTROL_UI_BASE_PATH__?: string;
+    runtime?: {
+      Environment?: () => Promise<{ platform?: string }>;
+      WindowIsMaximised?: () => Promise<boolean>;
+      WindowMinimise?: () => void;
+      WindowToggleMaximise?: () => void;
+      Quit?: () => void;
+    };
   }
 }
 
 const injectedAssistantIdentity = resolveInjectedAssistantIdentity();
+
+bootstrapShellModeFromUrl();
 
 function resolveOnboardingMode(): boolean {
   if (!window.location.search) {
@@ -118,6 +128,9 @@ export class OpenClawApp extends LitElement implements NativeDialogInvoker {
   @state() password = "";
   @state() tab: Tab = "message";
   @state() onboarding = resolveOnboardingMode();
+  @state() isDesktopShell = isDesktopShell();
+  @state() isWindowsDesktop = false;
+  @state() isWindowMaximised = false;
   @state() connected = false;
   @state() theme: ThemeMode = this.settings.theme ?? "light";
   @state() themeResolved: ResolvedTheme = "dark";
@@ -558,6 +571,7 @@ export class OpenClawApp extends LitElement implements NativeDialogInvoker {
   private themeMedia: MediaQueryList | null = null;
   private themeMediaHandler: ((event: MediaQueryListEvent) => void) | null = null;
   private topbarObserver: ResizeObserver | null = null;
+  private desktopWindowResizeHandler: (() => void) | null = null;
   private sessionOverflowEscapeHandler = (ev: KeyboardEvent) => {
     if (ev.key !== "Escape") {
       return;
@@ -584,6 +598,7 @@ export class OpenClawApp extends LitElement implements NativeDialogInvoker {
     registerNativeDialogInvoker(this);
     document.addEventListener("keydown", this.sessionOverflowEscapeHandler);
     handleConnected(this as unknown as Parameters<typeof handleConnected>[0]);
+    void this.initialiseDesktopWindowChrome();
   }
 
   protected firstUpdated() {
@@ -593,6 +608,7 @@ export class OpenClawApp extends LitElement implements NativeDialogInvoker {
   disconnectedCallback() {
     unregisterNativeDialogInvoker(this);
     document.removeEventListener("keydown", this.sessionOverflowEscapeHandler);
+    this.teardownDesktopWindowChrome();
     handleDisconnected(this as unknown as Parameters<typeof handleDisconnected>[0]);
     super.disconnectedCallback();
   }
@@ -873,12 +889,98 @@ export class OpenClawApp extends LitElement implements NativeDialogInvoker {
     this.nativePromptInput = value;
   }
 
+  async refreshWindowMaximised() {
+    if (!this.isWindowsDesktop) {
+      this.isWindowMaximised = false;
+      return;
+    }
+    try {
+      const maximised = await this.getDesktopRuntime()?.WindowIsMaximised?.();
+      this.isWindowMaximised = Boolean(maximised);
+    } catch {
+      this.isWindowMaximised = false;
+    }
+  }
+
+  handleWindowMinimise() {
+    if (!this.isWindowsDesktop) {
+      return;
+    }
+    this.getDesktopRuntime()?.WindowMinimise?.();
+  }
+
+  handleWindowToggleMaximise() {
+    if (!this.isWindowsDesktop) {
+      return;
+    }
+    this.getDesktopRuntime()?.WindowToggleMaximise?.();
+    window.setTimeout(() => {
+      void this.refreshWindowMaximised();
+    }, 60);
+  }
+
+  handleWindowClose() {
+    if (!this.isWindowsDesktop) {
+      return;
+    }
+    this.getDesktopRuntime()?.Quit?.();
+  }
+
+  handleTopbarDoubleClick(event: MouseEvent) {
+    if (!this.isWindowsDesktop) {
+      return;
+    }
+    const target = event
+      .composedPath()
+      .find((node): node is Element => node instanceof Element);
+    if (target?.closest(".topbar__no-drag")) {
+      return;
+    }
+    this.handleWindowToggleMaximise();
+  }
+
   private clearNativeDialogState() {
     this.nativeDialog = null;
     this.nativePromptInput = "";
     this.nativeResolveConfirm = null;
     this.nativeResolveAlert = null;
     this.nativeResolvePrompt = null;
+  }
+
+  private getDesktopRuntime() {
+    return window.runtime ?? null;
+  }
+
+  private async initialiseDesktopWindowChrome() {
+    this.isDesktopShell = isDesktopShell();
+    if (!this.isDesktopShell) {
+      return;
+    }
+    try {
+      const platform = (await this.getDesktopRuntime()?.Environment?.())?.platform ?? "";
+      this.isWindowsDesktop = platform === "windows";
+      if (!this.isWindowsDesktop) {
+        this.isWindowMaximised = false;
+        return;
+      }
+      await this.refreshWindowMaximised();
+      if (!this.desktopWindowResizeHandler) {
+        this.desktopWindowResizeHandler = () => {
+          void this.refreshWindowMaximised();
+        };
+        window.addEventListener("resize", this.desktopWindowResizeHandler);
+      }
+    } catch {
+      this.isWindowsDesktop = false;
+      this.isWindowMaximised = false;
+    }
+  }
+
+  private teardownDesktopWindowChrome() {
+    if (this.desktopWindowResizeHandler) {
+      window.removeEventListener("resize", this.desktopWindowResizeHandler);
+      this.desktopWindowResizeHandler = null;
+    }
   }
 
   render() {

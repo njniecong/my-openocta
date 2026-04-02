@@ -209,6 +209,28 @@ export const icons = {
       />
     </svg>
   `,
+  windowMinimise: html`
+    <svg viewBox="0 0 24 24">
+      <path d="M5 12.5h14" />
+    </svg>
+  `,
+  windowMaximise: html`
+    <svg viewBox="0 0 24 24">
+      <rect x="5.5" y="5.5" width="13" height="13" rx="0.5" />
+    </svg>
+  `,
+  windowRestore: html`
+    <svg viewBox="0 0 24 24">
+      <path d="M9.5 9.5h9v9h-9z" />
+      <path d="M7.5 14.5h-2v-9h9v2" />
+    </svg>
+  `,
+  windowClose: html`
+    <svg viewBox="0 0 24 24">
+      <path d="M6 6l12 12" />
+      <path d="M18 6 6 18" />
+    </svg>
+  `,
   check: html`
     <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
   `,

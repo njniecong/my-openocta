@@ -41,6 +41,9 @@ export type AppViewState = {
   password: string;
   tab: Tab;
   onboarding: boolean;
+  isDesktopShell: boolean;
+  isWindowsDesktop: boolean;
+  isWindowMaximised: boolean;
   basePath: string;
   connected: boolean;
   theme: ThemeMode;
@@ -489,4 +492,9 @@ export type AppViewState = {
   handleNativePromptInput: (value: string) => void;
   handleNativeDialogConfirm: () => void;
   handleNativeDialogCancel: () => void;
+  refreshWindowMaximised: () => Promise<void>;
+  handleWindowMinimise: () => void;
+  handleWindowToggleMaximise: () => void;
+  handleWindowClose: () => void;
+  handleTopbarDoubleClick: (event: MouseEvent) => void;
 };

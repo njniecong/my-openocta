@@ -91,7 +91,7 @@ func main() {
 		}
 	}
 
-	runErr := wails.Run(&options.App{
+	appOptions := &options.App{
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
@@ -107,7 +107,11 @@ func main() {
 		Height:    800,
 		MinWidth:  800,
 		MinHeight: 600,
-	})
+	}
+	if runtime.GOOS == "windows" {
+		appOptions.Frameless = true
+	}
+	runErr := wails.Run(appOptions)
 	if runErr != nil {
 		msg := fmt.Sprintf("Wails error: %v", runErr)
 		writeStartupLog(msg)

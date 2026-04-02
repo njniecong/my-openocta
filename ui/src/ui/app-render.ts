@@ -504,8 +504,21 @@ export function renderApp(state: AppViewState) {
       </button>
     </div>
   `;
+  const shellClasses = [
+    "shell",
+    isChat ? "shell--chat" : "",
+    isCatalogArea ? "shell--catalog" : "",
+    state.tab === "tutorials" ? "shell--tutorials" : "",
+    chatFocus ? "shell--chat-focus" : "",
+    isSideNavCollapsed ? "shell--nav-collapsed" : "",
+    state.onboarding ? "shell--onboarding" : "",
+    state.isWindowsDesktop ? "shell--windows-desktop" : "",
+    state.isWindowMaximised ? "shell--window-maximised" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   return html`
-    <div class="shell ${isChat ? "shell--chat" : ""} ${isCatalogArea ? "shell--catalog" : ""} ${state.tab === "tutorials" ? "shell--tutorials" : ""} ${chatFocus ? "shell--chat-focus" : ""} ${isSideNavCollapsed ? "shell--nav-collapsed" : ""} ${state.onboarding ? "shell--onboarding" : ""}">
+    <div class="${shellClasses}">
       <header class="topbar">
         ${
           state.approvalBannerVisible
@@ -537,7 +550,7 @@ export function renderApp(state: AppViewState) {
               `
             : nothing
         }
-        <div class="topbar__main">
+        <div class="topbar__main" @dblclick=${(event: MouseEvent) => state.handleTopbarDoubleClick(event)}>
         <div class="topbar-left">
           <div class="brand">
             <div class="brand-logo">
@@ -574,7 +587,7 @@ export function renderApp(state: AppViewState) {
               return html`
                 <button
                   type="button"
-                  class="top-tab top-tab--link"
+                  class="top-tab top-tab--link topbar__no-drag"
                   @click=${() =>
                     void openExternalUrl(extHref, {
                       gatewayHost: state.settings.gatewayUrl,
@@ -588,7 +601,7 @@ export function renderApp(state: AppViewState) {
             }
             return html`
               <button
-                class="top-tab ${active ? "top-tab--active" : ""}"
+                class="top-tab topbar__no-drag ${active ? "top-tab--active" : ""}"
                 @click=${() => state.setTab((tab === "config" ? "overview" : tab)!)}
                 type="button"
               >
@@ -599,11 +612,11 @@ export function renderApp(state: AppViewState) {
           })}
         </nav>
         <div class="topbar-status">
-          <div class="pill pill--link">
+          <div class="pill pill--link topbar__no-drag">
             <button
               type="button"
               title="打开 GitHub 仓库"
-              class="topbar-link"
+              class="topbar-link topbar__no-drag"
               @click=${() =>
                 void openExternalUrl("https://github.com/openocta/openocta.git", {
                   gatewayHost: state.settings.gatewayUrl,
@@ -615,6 +628,41 @@ export function renderApp(state: AppViewState) {
             </button>
           </div>
         </div>
+        ${
+          state.isWindowsDesktop
+            ? html`
+                <div class="window-controls topbar__no-drag" aria-label="窗口控制">
+                  <button
+                    type="button"
+                    class="window-control"
+                    aria-label="最小化窗口"
+                    title="最小化"
+                    @click=${() => state.handleWindowMinimise()}
+                  >
+                    ${icons.windowMinimise}
+                  </button>
+                  <button
+                    type="button"
+                    class="window-control"
+                    aria-label=${state.isWindowMaximised ? "还原窗口" : "最大化窗口"}
+                    title=${state.isWindowMaximised ? "还原" : "最大化"}
+                    @click=${() => state.handleWindowToggleMaximise()}
+                  >
+                    ${state.isWindowMaximised ? icons.windowRestore : icons.windowMaximise}
+                  </button>
+                  <button
+                    type="button"
+                    class="window-control window-control--close"
+                    aria-label="关闭窗口"
+                    title="关闭"
+                    @click=${() => state.handleWindowClose()}
+                  >
+                    ${icons.windowClose}
+                  </button>
+                </div>
+              `
+            : nothing
+        }
         </div>
       </header>
       ${state.tab === "tutorials"
