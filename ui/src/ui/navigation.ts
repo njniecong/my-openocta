@@ -85,6 +85,7 @@ const ACTIVE_TOP_TAB_ICONS: Partial<Record<Tab, IconName>> = {
   employeeMarket: "usersActive",
   skillLibrary: "zapActive",
   toolLibrary: "wrenchActive",
+  modelLibrary: "modelCubeActive",
   tutorials: "bookActive",
   community: "globeActive",
   config: "settingsActive",
