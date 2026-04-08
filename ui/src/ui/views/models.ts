@@ -7,6 +7,7 @@ import {
   parseModelRef,
   type BuiltInProvider,
 } from "./models-builtin.ts";
+import { resolveModelProviderLogo } from "./model-provider-logos.js";
 
 export type ModelDefinitionEntry = {
   id: string;
@@ -124,6 +125,18 @@ export function getModelsForProvider(providerKey: string, provider?: ModelProvid
   if (configured.length > 0) return configured;
   if (builtin?.defaultModel) return [{ id: builtin.defaultModel, name: builtin.defaultModel }];
   return [];
+}
+
+function renderProviderLogoGraphic(
+  providerKey: string,
+  displayName: string | undefined,
+  baseUrl: string | undefined,
+  builtin?: BuiltInProvider,
+) {
+  const logoUrl = resolveModelProviderLogo(providerKey, displayName, baseUrl, builtin);
+  return logoUrl
+    ? html`<img src=${logoUrl} alt="" class="provider-logo" loading="lazy" decoding="async" />`
+    : icons.modelCube;
 }
 
 export function renderModels(props: ModelsProps) {
@@ -345,6 +358,7 @@ export function renderModels(props: ModelsProps) {
                   const modelId = hasConfig ? (prov?.models?.[0]?.id ?? p.defaultModel ?? "(需指定)") : null;
                   const canUse = hasConfig && modelId && modelId !== "(需指定)";
                   const isProviderCurrent = canUse && current?.provider === p.id;
+
                   return html`
                     <div
                       class="models-provider-card ${props.selectedProvider === p.id ? "list-item-selected" : ""}"
@@ -353,10 +367,7 @@ export function renderModels(props: ModelsProps) {
                     >
                       <div class="models-provider-card__header">
                         <div class="models-provider-card__icon">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                            <path d="M2 17l10 5 10-5"/>
-                          </svg>
+                          ${renderProviderLogoGraphic(p.id, prov?.displayName, prov?.baseUrl, p)}
                         </div>
                         <div class="models-provider-card__title-row" style="min-width: 0;">
                           <span class="models-provider-card__name">${p.label}</span>
@@ -412,6 +423,7 @@ export function renderModels(props: ModelsProps) {
                       const modelId = provider.models?.[0]?.id;
                       const canUse = !!modelId;
                       const isProviderCurrent = canUse && current?.provider === key;
+
                       return html`
                       <div
                         class="models-provider-card ${props.selectedProvider === key ? "list-item-selected" : ""}"
@@ -420,10 +432,7 @@ export function renderModels(props: ModelsProps) {
                       >
                         <div class="models-provider-card__header">
                           <div class="models-provider-card__icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                              <path d="M2 17l10 5 10-5"/>
-                            </svg>
+                            ${renderProviderLogoGraphic(key, provider.displayName, provider.baseUrl)}
                           </div>
                           <div class="models-provider-card__title-row" style="min-width: 0;">
                             <span class="models-provider-card__name">${getProviderDisplayName(key, provider)}</span>
@@ -484,6 +493,10 @@ export function renderModelsOverlays(props: ModelsProps) {
   const current = parseModelRef(props.defaultModelRef);
   // 配置弹框使用 formProviders（未保存的表单数据），否则使用 providers
   const providers = props.formProviders ?? props.providers;
+  const selectedBuiltin = props.selectedProvider
+    ? BUILTIN_PROVIDERS.find((p) => p.id === props.selectedProvider)
+    : undefined;
+  const selectedProviderData = props.selectedProvider ? providers?.[props.selectedProvider] : undefined;
 
   return html`
     ${props.addProviderModalOpen
@@ -704,8 +717,18 @@ export function renderModelsOverlays(props: ModelsProps) {
             }}>
               <div class="channel-panel card" @click=${(e: Event) => e.stopPropagation()}>
                 <div class="channel-panel-header row" style="justify-content: space-between; align-items: center;">
-                  <div class="card-title">
-                    ${getProviderDisplayName(props.selectedProvider!, providers?.[props.selectedProvider!])} ${t("configSettingsTitle")}
+                  <div class="row" style="gap: 10px; align-items: center; min-width: 0;">
+                    <div class="models-provider-card__icon" style="width: 24px; height: 24px; flex-shrink: 0;">
+                      ${renderProviderLogoGraphic(
+                        props.selectedProvider!,
+                        selectedProviderData?.displayName,
+                        selectedProviderData?.baseUrl,
+                        selectedBuiltin,
+                      )}
+                    </div>
+                    <div class="card-title">
+                      ${getProviderDisplayName(props.selectedProvider!, selectedProviderData)} ${t("configSettingsTitle")}
+                    </div>
                   </div>
                   <button class="btn btn--icon" type="button" aria-label="关闭" @click=${props.onCancel}>
                     ${icons.x}

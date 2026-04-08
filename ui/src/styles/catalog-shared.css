@@ -158,6 +158,12 @@
   object-fit: cover;
 }
 
+.provider-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
 .emp-card__icon-fallback {
   font-size: 20px;
   color: var(--text-secondary);

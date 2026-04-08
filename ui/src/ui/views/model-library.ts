@@ -10,6 +10,7 @@ import {
   type ModelsProps,
   type ModelProvider,
 } from "./models.ts";
+import { resolveModelProviderLogo } from "./model-provider-logos.js";
 
 export type ModelLibraryCategory = "__all__" | "public" | "local";
 
@@ -170,10 +171,23 @@ function renderModelCard(
 ) {
   const displayBaseUrl = entry.baseUrl || "未配置 Base URL";
   const hasModels = entry.modelCount > 0;
+  // 解析 logo
+  const logoUrl = resolveModelProviderLogo(
+    entry.key,
+    entry.displayName,
+    entry.baseUrl,
+    entry.builtin,
+  );
+  const logoComponent = logoUrl !== null;
+
   return html`
     <div class="emp-card-wrap ${selectedProvider === entry.key ? "active" : ""}">
       <div class="emp-card emp-card-btn" @click=${() => onSelect(entry.key)}>
-        <div class="emp-card__icon emp-card__icon--default" aria-hidden="true">${icons.modelCube}</div>
+        <div class="emp-card__icon emp-card__icon--default" aria-hidden="true">
+          ${logoComponent
+            ? html`<img src="${logoUrl}" alt="${entry.displayName}" class="provider-logo" />`
+            : icons.modelCube}
+        </div>
         <div class="emp-card__actions models-provider-actions">
           ${hasModels
             ? entry.isDefault
