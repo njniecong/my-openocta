@@ -49,6 +49,9 @@ import {
   updateSkillEdit,
   updateSkillEnabled,
   uploadSkill,
+  listSkillFiles,
+  getSkillFile,
+  saveSkillFile,
 } from "./controllers/skills.ts";
 import { loadUsage, loadSessionTimeSeries, loadSessionLogs } from "./controllers/usage.ts";
 import { icons } from "./icons.ts";
@@ -2236,6 +2239,88 @@ export function renderApp(state: AppViewState) {
                     }
                   } finally {
                     state.skillsUploadBusy = false;
+                  }
+                },
+                skillEditModalOpen: state.skillLibraryEditModalOpen,
+                skillEditSkillKey: state.skillLibraryEditSkillKey,
+                skillEditFiles: state.skillLibraryEditFiles,
+                skillEditSelectedFile: state.skillLibraryEditSelectedFile,
+                skillEditContent: state.skillLibraryEditContent,
+                skillEditLoading: state.skillLibraryEditLoading,
+                skillEditSaving: state.skillLibraryEditSaving,
+                skillEditError: state.skillLibraryEditError,
+                skillEditSyntaxError: state.skillLibraryEditSyntaxError,
+                onSkillEditOpen: async (folder) => {
+                  state.skillLibraryEditModalOpen = true;
+                  state.skillLibraryEditSkillKey = folder;
+                  state.skillLibraryEditFiles = [];
+                  state.skillLibraryEditSelectedFile = null;
+                  state.skillLibraryEditContent = "";
+                  state.skillLibraryEditOriginalContent = "";
+                  state.skillLibraryEditLoading = true;
+                  state.skillLibraryEditError = null;
+                  state.skillLibraryEditSyntaxError = null;
+                  const files = await listSkillFiles(state, folder);
+                  state.skillLibraryEditFiles = files;
+                  state.skillLibraryEditLoading = false;
+                  if (files.length > 0) {
+                    const firstFile = files[0];
+                    state.skillLibraryEditSelectedFile = firstFile;
+                    state.skillLibraryEditLoading = true;
+                    const content = await getSkillFile(state, folder, firstFile);
+                    state.skillLibraryEditContent = content ?? "";
+                    state.skillLibraryEditOriginalContent = content ?? "";
+                    state.skillLibraryEditLoading = false;
+                  }
+                },
+                onSkillEditClose: () => {
+                  state.skillLibraryEditModalOpen = false;
+                  state.skillLibraryEditSkillKey = null;
+                  state.skillLibraryEditFiles = [];
+                  state.skillLibraryEditSelectedFile = null;
+                  state.skillLibraryEditContent = "";
+                  state.skillLibraryEditOriginalContent = "";
+                  state.skillLibraryEditError = null;
+                  state.skillLibraryEditSyntaxError = null;
+                },
+                onSkillEditFileSelect: async (path) => {
+                  if (state.skillLibraryEditSaving) return;
+                  state.skillLibraryEditSelectedFile = path;
+                  state.skillLibraryEditLoading = true;
+                  state.skillLibraryEditError = null;
+                  state.skillLibraryEditSyntaxError = null;
+                  const content = await getSkillFile(state, state.skillLibraryEditSkillKey!, path);
+                  state.skillLibraryEditContent = content ?? "";
+                  state.skillLibraryEditOriginalContent = content ?? "";
+                  state.skillLibraryEditLoading = false;
+                },
+                onSkillEditContentChange: (content) => {
+                  state.skillLibraryEditContent = content;
+                  state.skillLibraryEditSyntaxError = null;
+                },
+                onSkillEditSave: async () => {
+                  const skillKey = state.skillLibraryEditSkillKey;
+                  const filePath = state.skillLibraryEditSelectedFile;
+                  if (!skillKey || !filePath) return;
+                  // Frontend syntax validation
+                  const lowerPath = filePath.toLowerCase();
+                  if (lowerPath.endsWith(".json")) {
+                    try {
+                      JSON.parse(state.skillLibraryEditContent);
+                    } catch (e) {
+                      state.skillLibraryEditSyntaxError = `JSON 语法错误: ${(e as Error).message}`;
+                      return;
+                    }
+                  }
+                  state.skillLibraryEditSaving = true;
+                  state.skillLibraryEditError = null;
+                  state.skillLibraryEditSyntaxError = null;
+                  const ok = await saveSkillFile(state, skillKey, filePath, state.skillLibraryEditContent);
+                  state.skillLibraryEditSaving = false;
+                  if (ok) {
+                    state.skillLibraryEditOriginalContent = state.skillLibraryEditContent;
+                    await loadSkills(state);
+                    await onRefresh();
                   }
                 },
                 });

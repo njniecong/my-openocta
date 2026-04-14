@@ -372,6 +372,16 @@ export type AppViewState = {
   skillLibrarySelectedDetail: import("./controllers/remote-market.ts").SkillDetail | null;
   skillLibraryInstallingFolder: string | null;
   skillLibraryInstallSuccess: string | null;
+  skillLibraryEditModalOpen: boolean;
+  skillLibraryEditSkillKey: string | null;
+  skillLibraryEditFiles: string[];
+  skillLibraryEditSelectedFile: string | null;
+  skillLibraryEditContent: string;
+  skillLibraryEditOriginalContent: string;
+  skillLibraryEditLoading: boolean;
+  skillLibraryEditSaving: boolean;
+  skillLibraryEditError: string | null;
+  skillLibraryEditSyntaxError: string | null;
 
   toolLibraryLoadedOnce: boolean;
   toolLibraryLoading: boolean;

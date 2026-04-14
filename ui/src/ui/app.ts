@@ -501,6 +501,16 @@ export class OpenClawApp extends LitElement implements NativeDialogInvoker {
   @state() skillLibrarySelectedDetail: import("./controllers/remote-market.ts").SkillDetail | null = null;
   @state() skillLibraryInstallingFolder: string | null = null;
   @state() skillLibraryInstallSuccess: string | null = null;
+  @state() skillLibraryEditModalOpen = false;
+  @state() skillLibraryEditSkillKey: string | null = null;
+  @state() skillLibraryEditFiles: string[] = [];
+  @state() skillLibraryEditSelectedFile: string | null = null;
+  @state() skillLibraryEditContent = "";
+  @state() skillLibraryEditOriginalContent = "";
+  @state() skillLibraryEditLoading = false;
+  @state() skillLibraryEditSaving = false;
+  @state() skillLibraryEditError: string | null = null;
+  @state() skillLibraryEditSyntaxError: string | null = null;
 
   @state() toolLibraryLoadedOnce = false;
   @state() toolLibraryLoading = false;

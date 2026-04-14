@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,6 +17,7 @@ import (
 	"github.com/openocta/openocta/pkg/gateway/protocol"
 	"github.com/openocta/openocta/pkg/installmetadata"
 	"github.com/openocta/openocta/pkg/paths"
+	"gopkg.in/yaml.v3"
 )
 
 // SkillsStatusParams holds parameters for skills.status.
@@ -1455,6 +1457,414 @@ func SkillsDeleteHandler(opts HandlerOpts) error {
 	opts.Respond(true, map[string]interface{}{
 		"ok":       true,
 		"skillKey": params.SkillKey,
+	}, nil, nil)
+	return nil
+}
+
+// ========== Skill File Editing ==========
+
+var (
+	// editableExtensions defines allowed file extensions for skill editing.
+	editableExtensions = map[string]bool{
+		".yaml": true, ".yml": true, ".json": true, ".py": true,
+		".sh": true, ".md": true, ".js": true, ".ts": true,
+		".toml": true, ".txt": true, ".cfg": true, ".ini": true,
+		".go": true, ".rs": true, ".css": true, ".html": true,
+	}
+	// blockedDirNames defines directory names that cannot be traversed or edited.
+	blockedDirNames = map[string]bool{
+		"node_modules": true, "dist": true, "build": true, "vendor": true,
+		".git": true, "__pycache__": true, ".venv": true, "venv": true,
+		".idea": true, ".vscode": true, "out": true, "target": true,
+	}
+)
+
+func isEditableFile(name string) bool {
+	ext := strings.ToLower(filepath.Ext(name))
+	return editableExtensions[ext]
+}
+
+func isBlockedDir(name string) bool {
+	return blockedDirNames[name]
+}
+
+// resolveSkillBaseDir finds a skill's base directory by skillKey across all workspaces.
+func resolveSkillBaseDir(cfg *config.OpenOctaConfig, skillKey string, env func(string) string) (string, error) {
+	workspaceDirs := listWorkspaceDirs(cfg, env)
+	for _, workspaceDir := range workspaceDirs {
+		entries := loadWorkspaceSkillEntries(workspaceDir, cfg)
+		for _, entry := range entries {
+			if skillEntryMatchesClientKey(entry, skillKey) {
+				return entry.BaseDir, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("skill not found: %s", skillKey)
+}
+
+// isSubpath checks if target is under base (both should be clean absolute paths).
+func isSubpath(base, target string) bool {
+	rel, err := filepath.Rel(base, target)
+	if err != nil {
+		return false
+	}
+	rel = filepath.Clean(rel)
+	return rel != "." && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
+// sanitizeSkillFilePath validates and resolves a relative file path within a skill directory.
+func sanitizeSkillFilePath(baseDir, relPath string) (string, error) {
+	absBase, err := filepath.Abs(baseDir)
+	if err != nil {
+		return "", fmt.Errorf("invalid baseDir: %w", err)
+	}
+	// Clean the relative path to prevent traversal attacks
+	cleanRel := filepath.Clean("/" + relPath)
+	cleanRel = strings.TrimPrefix(cleanRel, string(filepath.Separator))
+	if cleanRel == "" || cleanRel == "." {
+		return "", fmt.Errorf("invalid file path")
+	}
+	// Check for blocked directories in the path
+	parts := strings.Split(cleanRel, string(filepath.Separator))
+	for _, part := range parts {
+		if isBlockedDir(part) {
+			return "", fmt.Errorf("access to directory %s is not allowed", part)
+		}
+	}
+	// Ensure the file has an allowed extension
+	if !isEditableFile(filepath.Base(cleanRel)) {
+		return "", fmt.Errorf("file type not allowed for editing")
+	}
+	absTarget := filepath.Join(absBase, cleanRel)
+	if !isSubpath(absBase, absTarget) {
+		return "", fmt.Errorf("file path escapes skill directory")
+	}
+	return absTarget, nil
+}
+
+// listEditableSkillFiles recursively lists editable files under baseDir.
+func listEditableSkillFiles(baseDir string) ([]string, error) {
+	var files []string
+	absBase, err := filepath.Abs(baseDir)
+	if err != nil {
+		return nil, err
+	}
+	err = filepath.Walk(absBase, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // skip inaccessible
+		}
+		if info.IsDir() {
+			if isBlockedDir(filepath.Base(path)) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !isEditableFile(filepath.Base(path)) {
+			return nil
+		}
+		rel, err := filepath.Rel(absBase, path)
+		if err != nil {
+			return nil
+		}
+		files = append(files, filepath.ToSlash(rel))
+		return nil
+	})
+	return files, err
+}
+
+// validateFileSyntax performs basic syntax validation based on file extension.
+func validateFileSyntax(path string, content []byte) error {
+	ext := strings.ToLower(filepath.Ext(path))
+	switch ext {
+	case ".json":
+		var v interface{}
+		if err := json.Unmarshal(content, &v); err != nil {
+			return fmt.Errorf("JSON syntax error: %w", err)
+		}
+	case ".yaml", ".yml":
+		var v interface{}
+		if err := yaml.Unmarshal(content, &v); err != nil {
+			return fmt.Errorf("YAML syntax error: %w", err)
+		}
+	}
+	return nil
+}
+
+// SkillsListFilesParams holds parameters for skills.listFiles.
+type SkillsListFilesParams struct {
+	SkillKey string
+}
+
+func parseSkillsListFilesParams(params map[string]interface{}) (*SkillsListFilesParams, error) {
+	p := &SkillsListFilesParams{}
+	skillKey, ok := params["skillKey"].(string)
+	if !ok || strings.TrimSpace(skillKey) == "" {
+		return nil, fmt.Errorf("skillKey is required")
+	}
+	p.SkillKey = strings.TrimSpace(skillKey)
+	return p, nil
+}
+
+// SkillsListFilesHandler handles "skills.listFiles".
+func SkillsListFilesHandler(opts HandlerOpts) error {
+	params, err := parseSkillsListFilesParams(opts.Params)
+	if err != nil {
+		opts.Respond(false, nil, &protocol.ErrorShape{
+			Code:    protocol.ErrCodeInvalidRequest,
+			Message: fmt.Sprintf("invalid skills.listFiles params: %v", err),
+		}, nil)
+		return nil
+	}
+
+	env := func(k string) string { return os.Getenv(k) }
+	cfg, err := config.Load(env)
+	if err != nil {
+		opts.Respond(false, nil, &protocol.ErrorShape{
+			Code:    protocol.ErrCodeInternal,
+			Message: "failed to load config: " + err.Error(),
+		}, nil)
+		return nil
+	}
+
+	baseDir, err := resolveSkillBaseDir(cfg, params.SkillKey, env)
+	if err != nil {
+		opts.Respond(false, nil, &protocol.ErrorShape{
+			Code:    protocol.ErrCodeInvalidRequest,
+			Message: err.Error(),
+		}, nil)
+		return nil
+	}
+
+	files, err := listEditableSkillFiles(baseDir)
+	if err != nil {
+		opts.Respond(false, nil, &protocol.ErrorShape{
+			Code:    protocol.ErrCodeInternal,
+			Message: "failed to list skill files: " + err.Error(),
+		}, nil)
+		return nil
+	}
+
+	sort.Strings(files)
+	opts.Respond(true, map[string]interface{}{
+		"files": files,
+	}, nil, nil)
+	return nil
+}
+
+// SkillsGetFileParams holds parameters for skills.getFile.
+type SkillsGetFileParams struct {
+	SkillKey string
+	FilePath string
+}
+
+func parseSkillsGetFileParams(params map[string]interface{}) (*SkillsGetFileParams, error) {
+	p := &SkillsGetFileParams{}
+	skillKey, ok := params["skillKey"].(string)
+	if !ok || strings.TrimSpace(skillKey) == "" {
+		return nil, fmt.Errorf("skillKey is required")
+	}
+	p.SkillKey = strings.TrimSpace(skillKey)
+	filePath, ok := params["filePath"].(string)
+	if !ok || strings.TrimSpace(filePath) == "" {
+		return nil, fmt.Errorf("filePath is required")
+	}
+	p.FilePath = strings.TrimSpace(filePath)
+	return p, nil
+}
+
+// SkillsGetFileHandler handles "skills.getFile".
+func SkillsGetFileHandler(opts HandlerOpts) error {
+	params, err := parseSkillsGetFileParams(opts.Params)
+	if err != nil {
+		opts.Respond(false, nil, &protocol.ErrorShape{
+			Code:    protocol.ErrCodeInvalidRequest,
+			Message: fmt.Sprintf("invalid skills.getFile params: %v", err),
+		}, nil)
+		return nil
+	}
+
+	env := func(k string) string { return os.Getenv(k) }
+	cfg, err := config.Load(env)
+	if err != nil {
+		opts.Respond(false, nil, &protocol.ErrorShape{
+			Code:    protocol.ErrCodeInternal,
+			Message: "failed to load config: " + err.Error(),
+		}, nil)
+		return nil
+	}
+
+	baseDir, err := resolveSkillBaseDir(cfg, params.SkillKey, env)
+	if err != nil {
+		opts.Respond(false, nil, &protocol.ErrorShape{
+			Code:    protocol.ErrCodeInvalidRequest,
+			Message: err.Error(),
+		}, nil)
+		return nil
+	}
+
+	absPath, err := sanitizeSkillFilePath(baseDir, params.FilePath)
+	if err != nil {
+		opts.Respond(false, nil, &protocol.ErrorShape{
+			Code:    protocol.ErrCodeInvalidRequest,
+			Message: err.Error(),
+		}, nil)
+		return nil
+	}
+
+	content, err := os.ReadFile(absPath)
+	if err != nil {
+		opts.Respond(false, nil, &protocol.ErrorShape{
+			Code:    protocol.ErrCodeInternal,
+			Message: "failed to read file: " + err.Error(),
+		}, nil)
+		return nil
+	}
+
+	opts.Respond(true, map[string]interface{}{
+		"content": string(content),
+	}, nil, nil)
+	return nil
+}
+
+// SkillsSaveFileParams holds parameters for skills.saveFile.
+type SkillsSaveFileParams struct {
+	SkillKey string
+	FilePath string
+	Content  string
+}
+
+func parseSkillsSaveFileParams(params map[string]interface{}) (*SkillsSaveFileParams, error) {
+	p := &SkillsSaveFileParams{}
+	skillKey, ok := params["skillKey"].(string)
+	if !ok || strings.TrimSpace(skillKey) == "" {
+		return nil, fmt.Errorf("skillKey is required")
+	}
+	p.SkillKey = strings.TrimSpace(skillKey)
+	filePath, ok := params["filePath"].(string)
+	if !ok || strings.TrimSpace(filePath) == "" {
+		return nil, fmt.Errorf("filePath is required")
+	}
+	p.FilePath = strings.TrimSpace(filePath)
+	content, ok := params["content"].(string)
+	if !ok {
+		return nil, fmt.Errorf("content is required")
+	}
+	p.Content = content
+	return p, nil
+}
+
+// SkillsSaveFileHandler handles "skills.saveFile".
+func SkillsSaveFileHandler(opts HandlerOpts) error {
+	params, err := parseSkillsSaveFileParams(opts.Params)
+	if err != nil {
+		opts.Respond(false, nil, &protocol.ErrorShape{
+			Code:    protocol.ErrCodeInvalidRequest,
+			Message: fmt.Sprintf("invalid skills.saveFile params: %v", err),
+		}, nil)
+		return nil
+	}
+
+	env := func(k string) string { return os.Getenv(k) }
+	cfg, err := config.Load(env)
+	if err != nil {
+		opts.Respond(false, nil, &protocol.ErrorShape{
+			Code:    protocol.ErrCodeInternal,
+			Message: "failed to load config: " + err.Error(),
+		}, nil)
+		return nil
+	}
+
+	baseDir, err := resolveSkillBaseDir(cfg, params.SkillKey, env)
+	if err != nil {
+		opts.Respond(false, nil, &protocol.ErrorShape{
+			Code:    protocol.ErrCodeInvalidRequest,
+			Message: err.Error(),
+		}, nil)
+		return nil
+	}
+
+	absPath, err := sanitizeSkillFilePath(baseDir, params.FilePath)
+	if err != nil {
+		opts.Respond(false, nil, &protocol.ErrorShape{
+			Code:    protocol.ErrCodeInvalidRequest,
+			Message: err.Error(),
+		}, nil)
+		return nil
+	}
+
+	contentBytes := []byte(params.Content)
+
+	// Validate syntax before saving
+	if err := validateFileSyntax(absPath, contentBytes); err != nil {
+		opts.Respond(false, nil, &protocol.ErrorShape{
+			Code:    protocol.ErrCodeInvalidRequest,
+			Message: err.Error(),
+		}, nil)
+		return nil
+	}
+
+	// Backup original file if it exists
+	backupPath := absPath + ".openocta-backup"
+	originalExists := false
+	if _, err := os.Stat(absPath); err == nil {
+		originalExists = true
+		originalData, err := os.ReadFile(absPath)
+		if err != nil {
+			opts.Respond(false, nil, &protocol.ErrorShape{
+				Code:    protocol.ErrCodeInternal,
+				Message: "failed to read original file for backup: " + err.Error(),
+			}, nil)
+			return nil
+		}
+		if err := os.WriteFile(backupPath, originalData, 0600); err != nil {
+			opts.Respond(false, nil, &protocol.ErrorShape{
+				Code:    protocol.ErrCodeInternal,
+				Message: "failed to create backup: " + err.Error(),
+			}, nil)
+			return nil
+		}
+	}
+
+	// Write new content
+	if err := os.WriteFile(absPath, contentBytes, 0644); err != nil {
+		// Attempt to restore from backup
+		if originalExists {
+			_ = os.Rename(backupPath, absPath)
+		}
+		opts.Respond(false, nil, &protocol.ErrorShape{
+			Code:    protocol.ErrCodeInternal,
+			Message: "failed to save file: " + err.Error(),
+		}, nil)
+		return nil
+	}
+
+	// Verify the file was written correctly
+	written, err := os.ReadFile(absPath)
+	if err != nil || string(written) != params.Content {
+		if originalExists {
+			_ = os.Rename(backupPath, absPath)
+		}
+		opts.Respond(false, nil, &protocol.ErrorShape{
+			Code:    protocol.ErrCodeInternal,
+			Message: "file verification failed after save",
+		}, nil)
+		return nil
+	}
+
+	// Remove backup on success
+	if originalExists {
+		_ = os.Remove(backupPath)
+	}
+
+	// Reload skills to ensure the change is picked up immediately.
+	// LoadWorkspaceEntries reads from disk each time, so triggering a load validates freshness.
+	workspaceDir := agent.ResolveAgentWorkspaceDir(cfg, resolveDefaultAgentID(cfg), env)
+	_ = loadWorkspaceSkillEntries(workspaceDir, cfg)
+
+	opts.Respond(true, map[string]interface{}{
+		"ok":       true,
+		"skillKey": params.SkillKey,
+		"filePath": params.FilePath,
 	}, nil, nil)
 	return nil
 }

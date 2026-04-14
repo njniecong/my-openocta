@@ -267,3 +267,80 @@ export async function loadSkillDoc(
     state.skillsSkillDocLoading = false;
   }
 }
+
+export type SkillFileEntry = {
+  path: string;
+};
+
+export async function listSkillFiles(
+  state: SkillsState,
+  skillKey: string,
+): Promise<string[]> {
+  if (!state.client || !state.connected) {
+    return [];
+  }
+  try {
+    const res = await state.client.request<{ files?: string[] }>("skills.listFiles", {
+      skillKey,
+    });
+    return res?.files ?? [];
+  } catch (err) {
+    state.skillsError = getErrorMessage(err);
+    return [];
+  }
+}
+
+export async function getSkillFile(
+  state: SkillsState,
+  skillKey: string,
+  filePath: string,
+): Promise<string | null> {
+  if (!state.client || !state.connected) {
+    return null;
+  }
+  try {
+    const res = await state.client.request<{ content?: string }>("skills.getFile", {
+      skillKey,
+      filePath,
+    });
+    return res?.content ?? null;
+  } catch (err) {
+    state.skillsError = getErrorMessage(err);
+    return null;
+  }
+}
+
+export async function saveSkillFile(
+  state: SkillsState,
+  skillKey: string,
+  filePath: string,
+  content: string,
+): Promise<boolean> {
+  if (!state.client || !state.connected) {
+    return false;
+  }
+  state.skillsBusyKey = skillKey;
+  state.skillsError = null;
+  try {
+    await state.client.request("skills.saveFile", {
+      skillKey,
+      filePath,
+      content,
+    });
+    setSkillMessage(state, skillKey, {
+      kind: "success",
+      message: "文件保存成功",
+    });
+    return true;
+  } catch (err) {
+    const message = getErrorMessage(err);
+    state.skillsError = message;
+    setSkillMessage(state, skillKey, {
+      kind: "error",
+      message,
+    });
+    return false;
+  } finally {
+    state.skillsBusyKey = null;
+  }
+}

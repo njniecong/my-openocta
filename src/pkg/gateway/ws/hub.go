@@ -87,6 +87,7 @@ func NewHub(version string, h *handlers.Registry, ctx *handlers.Context) *Hub {
 		"agents.files.list", "agents.files.get", "agents.files.set",
 		"employees.list", "employees.get", "employees.create", "employees.delete",
 		"skills.status", "skills.getDoc", "skills.bins", "skills.install", "skills.update", "skills.delete",
+		"skills.listFiles", "skills.getFile", "skills.saveFile",
 		"files.read",
 		"update.run", "voicewake.get", "voicewake.set",
 		"sessions.list", "sessions.create", "sessions.ensure", "sessions.preview", "sessions.patch", "sessions.reset", "sessions.delete", "sessions.compact", "sessions.usage", "sessions.usage.timeseries", "sessions.usage.logs",

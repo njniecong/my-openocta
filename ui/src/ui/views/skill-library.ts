@@ -69,6 +69,21 @@ export type SkillLibraryProps = {
   onInstall?: (folder: string, category?: string) => Promise<void>;
   onDelete?: (folder: string) => Promise<void>;
   onToggleEnabled?: (folder: string, enabled: boolean) => Promise<void>;
+  // Skill editor
+  skillEditModalOpen?: boolean;
+  skillEditSkillKey?: string | null;
+  skillEditFiles?: string[];
+  skillEditSelectedFile?: string | null;
+  skillEditContent?: string;
+  skillEditLoading?: boolean;
+  skillEditSaving?: boolean;
+  skillEditError?: string | null;
+  skillEditSyntaxError?: string | null;
+  onSkillEditOpen?: (folder: string) => void;
+  onSkillEditClose?: () => void;
+  onSkillEditFileSelect?: (path: string) => void;
+  onSkillEditContentChange?: (content: string) => void;
+  onSkillEditSave?: () => Promise<void>;
 };
 
 function normalizeCategory(raw?: string) {
@@ -223,6 +238,20 @@ function renderSkillDetailActions(
   if (installed) {
     return html`
       <div class="market-card-actions">
+        ${props.onSkillEditOpen
+          ? html`
+              <button
+                class="btn primary"
+                type="button"
+                @click=${(e: Event) => {
+                  e.stopPropagation();
+                  props.onSkillEditOpen!(folder);
+                }}
+              >
+                编辑
+              </button>
+            `
+          : nothing}
         ${props.onToggleEnabled
           ? html`
               <button
@@ -640,7 +669,172 @@ export function renderSkillLibrary(props: SkillLibraryProps) {
               </div>
             `
           : nothing}
+
+        ${props.skillEditModalOpen
+          ? renderSkillEditorModal(props)
+          : nothing}
       </section>
     </main>
+  `;
+}
+
+function renderSkillEditorModal(props: SkillLibraryProps) {
+  const skillKey = props.skillEditSkillKey ?? "";
+  const files = props.skillEditFiles ?? [];
+  const selectedFile = props.skillEditSelectedFile;
+  const content = props.skillEditContent ?? "";
+  const loading = props.skillEditLoading ?? false;
+  const saving = props.skillEditSaving ?? false;
+  const error = props.skillEditError;
+  const syntaxError = props.skillEditSyntaxError;
+  const hasChanges = content !== (props.skillEditContent ?? "");
+  const canSave = selectedFile && !loading && !saving;
+
+  return html`
+    <div class="modal-overlay" @click=${props.onSkillEditClose} role="dialog" aria-modal="true">
+      <div
+        class="modal card"
+        style="
+          width: min(960px, 95vw);
+          height: min(720px, 90vh);
+          max-width: 95vw;
+          max-height: 90vh;
+          display: flex;
+          flex-direction: column;
+          padding: 0;
+          overflow: hidden;
+        "
+        @click=${(e: Event) => e.stopPropagation()}
+      >
+        <div
+          class="row"
+          style="
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border, #e5e5e5);
+            flex-shrink: 0;
+          "
+        >
+          <div class="card-title" style="margin: 0;">编辑技能：${skillKey}</div>
+          <button class="btn btn--icon" type="button" aria-label="关闭" @click=${props.onSkillEditClose}>
+            ${icons.x}
+          </button>
+        </div>
+
+        <div class="row" style="flex: 1; min-height: 0; overflow: hidden;">
+          <!-- File tree -->
+          <div
+            style="
+              width: 220px;
+              flex-shrink: 0;
+              border-right: 1px solid var(--border, #e5e5e5);
+              overflow: auto;
+              padding: 12px;
+              background: var(--bg-subtle, #fafafa);
+            "
+          >
+            ${loading && files.length === 0
+              ? html`<div class="muted" style="padding: 8px;">加载中...</div>`
+              : html`
+                  <div style="font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 8px;">
+                    文件列表
+                  </div>
+                  ${files.map(
+                    (f) => html`
+                      <div
+                        style="
+                          padding: 6px 8px;
+                          border-radius: 4px;
+                          cursor: pointer;
+                          font-size: 13px;
+                          font-family: var(--mono);
+                          white-space: nowrap;
+                          overflow: hidden;
+                          text-overflow: ellipsis;
+                          ${selectedFile === f
+                            ? "background: var(--primary-light, #e6f2ff); color: var(--primary, #0066cc);"
+                            : "color: var(--text-main);"}
+                        "
+                        @click=${() => props.onSkillEditFileSelect?.(f)}
+                        title=${f}
+                      >
+                        ${f}
+                      </div>
+                    `,
+                  )}
+                `}
+          </div>
+
+          <!-- Editor -->
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden;">
+            <div style="padding: 12px 16px; border-bottom: 1px solid var(--border, #e5e5e5); flex-shrink: 0;">
+              <div class="muted" style="font-size: 13px; font-family: var(--mono);">
+                ${selectedFile ?? "请选择左侧文件"}
+              </div>
+            </div>
+            <div style="flex: 1; min-height: 0; position: relative;">
+              ${loading
+                ? html`<div class="muted" style="padding: 24px;">加载中...</div>`
+                : html`
+                    <textarea
+                      style="
+                        width: 100%;
+                        height: 100%;
+                        resize: none;
+                        border: none;
+                        outline: none;
+                        padding: 16px;
+                        font-family: var(--mono);
+                        font-size: 13px;
+                        line-height: 1.6;
+                        background: transparent;
+                        color: var(--text-main);
+                      "
+                      .value=${content}
+                      ?disabled=${!selectedFile || saving}
+                      @input=${(e: Event) =>
+                        props.onSkillEditContentChange?.((e.target as HTMLTextAreaElement).value)}
+                    ></textarea>
+                  `}
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="row"
+          style="
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            border-top: 1px solid var(--border, #e5e5e5);
+            flex-shrink: 0;
+            gap: 12px;
+          "
+        >
+          <div style="flex: 1; min-width: 0;">
+            ${syntaxError
+              ? html`<div class="callout danger" style="padding: 8px 12px; font-size: 13px;">${syntaxError}</div>`
+              : error
+                ? html`<div class="callout danger" style="padding: 8px 12px; font-size: 13px;">${error}</div>`
+                : nothing}
+          </div>
+          <div class="row" style="gap: 8px; flex-shrink: 0;">
+            <button class="btn" ?disabled=${saving} @click=${props.onSkillEditClose}>取消</button>
+            <button
+              class="btn primary"
+              ?disabled=${!canSave}
+              @click=${async () => {
+                if (props.onSkillEditSave) {
+                  await props.onSkillEditSave();
+                }
+              }}
+            >
+              ${saving ? "保存中..." : "保存"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 }
