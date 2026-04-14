@@ -289,18 +289,12 @@ function renderToolDetailActions(
 function renderToolMeta(item: McpListItem | McpDetail, currentCategory?: string) {
   const tags = splitCsv(item.tags);
   const status = statusLabel(item.status);
-  const itemCategory = normalizeCategory(item.category);
-  // 单分类页面：隐藏与当前分类同名的标签，避免冗余
-  const isInSingleCategoryView = currentCategory && currentCategory !== "__all__";
-  const shouldHideCategoryTag = isInSingleCategoryView && itemCategory === currentCategory;
-  const visibleTags = isInSingleCategoryView
+  // 不再将 category 渲染为 chip，避免与 section 标题或当前分类重复
+  const visibleTags = currentCategory && currentCategory !== "__all__"
     ? tags.filter((t) => t !== currentCategory).slice(0, 3)
     : tags.slice(0, 3);
   return html`
     <div class="market-card-meta">
-      ${(item.category ?? "").trim() && !shouldHideCategoryTag
-        ? html`<span class="market-card-chip market-card-chip--muted">${itemCategory}</span>`
-        : nothing}
       ${status ? html`<span class="market-card-chip">${status}</span>` : nothing}
       ${visibleTags.map((t) => html`<span class="market-card-chip">${t}</span>`)}
     </div>
@@ -626,13 +620,6 @@ export function renderToolLibrary(props: ToolLibraryProps) {
                           ${props.selectedDetail.name ?? `#${props.selectedDetail.id}`}
                         </h1>
                         <div class="emp-detail-tags">
-                          ${(() => {
-                            const detailCategory = normalizeCategory(props.selectedDetail.category);
-                            const hideDetailCategory = effectiveCategory && effectiveCategory !== "__all__" && detailCategory === effectiveCategory;
-                            return (props.selectedDetail.category ?? "").trim() && !hideDetailCategory
-                              ? html`<span class="badge ghost">${detailCategory}</span>`
-                              : nothing;
-                          })()}
                           ${(props.selectedDetail.status ?? "").trim()
                             ? html`<span class="badge ghost">${statusLabel(props.selectedDetail.status)}</span>`
                             : nothing}
